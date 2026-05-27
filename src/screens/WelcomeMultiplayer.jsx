@@ -11,7 +11,6 @@ const WelcomeMultiplayer = () => {
   const [joinError, setJoinError] = useState(null);
 
   const joinRoom = useSocketGameStore(state => state.joinRoom);
-  const setGameState = useSocketGameStore(state => state.gameState);
 
   useEffect(() => {
     // Initialize socket connection on mount
