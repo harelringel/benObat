@@ -7,6 +7,8 @@ import QuestionManagerEnhanced from './QuestionManagerEnhanced';
 const questionsBank = defaultQuestionsData.questions;
 
 const QUESTIONS_STORAGE_KEY = 'benorbat_custom_questions';
+const QUESTIONS_VERSION_KEY = 'benorbat_questions_version';
+const CURRENT_QUESTIONS_VERSION = '2.0'; // Updated with 20 custom questions from docx
 
 const AdminSetupMultiplayer = () => {
   const {
@@ -32,10 +34,29 @@ const AdminSetupMultiplayer = () => {
 
   // Load custom questions from localStorage on mount
   useEffect(() => {
-    // Always use the new default questions (20 custom questions from docx)
-    // Clear old localStorage and use new default
-    setAvailableQuestions([...questionsBank]);
-    localStorage.setItem(QUESTIONS_STORAGE_KEY, JSON.stringify(questionsBank));
+    const storedVersion = localStorage.getItem(QUESTIONS_VERSION_KEY);
+
+    // Force reload if version changed or no version found
+    if (storedVersion !== CURRENT_QUESTIONS_VERSION) {
+      console.log('Loading new questions version:', CURRENT_QUESTIONS_VERSION);
+      localStorage.setItem(QUESTIONS_VERSION_KEY, CURRENT_QUESTIONS_VERSION);
+      localStorage.setItem(QUESTIONS_STORAGE_KEY, JSON.stringify(questionsBank));
+      setAvailableQuestions([...questionsBank]);
+    } else {
+      // Load from localStorage if same version
+      const stored = localStorage.getItem(QUESTIONS_STORAGE_KEY);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setAvailableQuestions(parsed);
+        } catch (e) {
+          console.error('Failed to parse stored questions:', e);
+          setAvailableQuestions([...questionsBank]);
+        }
+      } else {
+        setAvailableQuestions([...questionsBank]);
+      }
+    }
   }, []);
 
   // Auto-select random questions when reaching step 3
