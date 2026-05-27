@@ -19,21 +19,6 @@ const KeyBoardStageMultiplayer = () => {
   } = useSocketGameStore();
 
   const [selectedCircle, setSelectedCircle] = useState(null);
-  const [boardMusic] = useState(() => new Audio('/board-music.mp3'));
-
-  useEffect(() => {
-    // Play board music when board phase starts
-    if (gameState === GAME_STATES.BOARD_INTRO || gameState === GAME_STATES.BOARD_PLAYER_TURN) {
-      boardMusic.loop = true;
-      boardMusic.volume = 0.3;
-      boardMusic.play().catch(err => console.log('Board music autoplay blocked:', err));
-    }
-
-    return () => {
-      boardMusic.pause();
-      boardMusic.currentTime = 0;
-    };
-  }, [gameState, boardMusic]);
 
   const currentPlayer = players[currentPlayerIndex];
   const gridSize = Math.sqrt(boardSize);

@@ -15,7 +15,6 @@ const FinalRevealMultiplayer = () => {
   const [showSuspense, setShowSuspense] = useState(true);
   const [showGender, setShowGender] = useState(false);
   const [showWinner, setShowWinner] = useState(false);
-  const [celebrationMusic] = useState(() => new Audio('/celebration-music.mp3'));
 
   useEffect(() => {
     if (gameState === GAME_STATES.REVEAL_SUSPENSE) {
@@ -31,10 +30,6 @@ const FinalRevealMultiplayer = () => {
   useEffect(() => {
     if (gameState === GAME_STATES.FINAL_REVEAL && !showGender) {
       setShowGender(true);
-
-      // Play celebration music
-      celebrationMusic.volume = 0.4;
-      celebrationMusic.play().catch(err => console.log('Celebration music autoplay blocked:', err));
 
       // Fire confetti
       const colors = revealedGender === 'boy'
@@ -74,11 +69,18 @@ const FinalRevealMultiplayer = () => {
 
       return () => {
         clearTimeout(winnerTimer);
-        celebrationMusic.pause();
-        celebrationMusic.currentTime = 0;
       };
     }
-  }, [gameState, showGender, revealedGender, celebrationMusic]);
+  }, [gameState, showGender, revealedGender]);
+
+  // Handle GAME_OVER state - move directly to final reveal
+  useEffect(() => {
+    if (gameState === GAME_STATES.GAME_OVER) {
+      setShowSuspense(false);
+      setShowGender(true);
+      setShowWinner(true);
+    }
+  }, [gameState]);
 
   // Suspense screen
   if (showSuspense && gameState === GAME_STATES.REVEAL_SUSPENSE) {
@@ -138,6 +140,18 @@ const FinalRevealMultiplayer = () => {
             ⏱️
           </motion.div>
         </motion.div>
+      </div>
+    );
+  }
+
+  // Fallback if revealedGender is not set
+  if (!revealedGender) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-purple-100 via-pink-100 to-blue-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">⏳</div>
+          <div className="text-2xl font-bold text-gray-800">טוען גילוי...</div>
+        </div>
       </div>
     );
   }

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import useSocketGameStore from '../store/socketGameStore';
-import questionsBank from '../data/questions.json';
+import defaultQuestionsData from '../data/default-questions.json';
 import QuestionManagerEnhanced from './QuestionManagerEnhanced';
+
+const questionsBank = defaultQuestionsData.questions;
 
 const QUESTIONS_STORAGE_KEY = 'benorbat_custom_questions';
 
