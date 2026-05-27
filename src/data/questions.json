@@ -1,282 +1,162 @@
 [
   {
     "id": 1,
-    "category": "science",
-    "text": "כמה כרומוזומים יש לתא אנושי רגיל?",
-    "options": ["23", "46", "48", "36"],
+    "text": "מי הראשונ/ה שידע/ה על ההיריון אחרי דפנה והראל?",
+    "options": ["הילי", "איילה", "ריצ'י"],
     "correct": 1,
+    "category": "family",
     "difficulty": "medium"
   },
   {
     "id": 2,
-    "category": "general",
-    "text": "מה הוא הכוכב הקרוב ביותר לכדור הארץ?",
-    "options": ["מאדים", "נוגה", "השמש", "פרוקסימה צנטאורי"],
-    "correct": 2,
-    "difficulty": "easy"
+    "text": "איזה אירוע היה ביום שבו גילינו על ההיריון?",
+    "options": ["חתונה של אלי חברה של דפי", "בר מצווה של אחיין של דפי", "רועי ונטלי הודיעו על ההיריון שלהם"],
+    "correct": 0,
+    "category": "family",
+    "difficulty": "medium"
   },
   {
     "id": 3,
-    "category": "geography",
-    "text": "מהי בירת איטליה?",
-    "options": ["מילאנו", "ונציה", "רומא", "נאפולי"],
-    "correct": 2,
+    "text": "מה החודש המשוער ללידה?",
+    "options": ["אוקטובר", "נובמבר", "דצמבר"],
+    "correct": 1,
+    "category": "pregnancy",
     "difficulty": "easy"
   },
   {
     "id": 4,
-    "category": "sports",
-    "text": "כמה שחקנים יש בקבוצת כדורסל?",
-    "options": ["5", "6", "7", "11"],
-    "correct": 0,
-    "difficulty": "easy"
+    "text": "הבדיקה החיובית הראשונה התגלתה-",
+    "options": ["עם בחילת בוקר", "בבדיקת דם", "בבדיקת מקל פיפי"],
+    "correct": 1,
+    "category": "pregnancy",
+    "difficulty": "medium"
   },
   {
     "id": 5,
-    "category": "entertainment",
-    "text": "מי ביים את הסרט 'טיטאניק'?",
-    "options": ["סטיבן ספילברג", "ג'יימס קמרון", "כריסטופר נולאן", "קוונטין טרנטינו"],
+    "text": "כמה זוגות בחבר'ה של הראל כבר הורים ל2?",
+    "options": ["זוג אחד", "2 זוגות", "3 זוגות"],
     "correct": 1,
+    "category": "friends",
     "difficulty": "medium"
   },
   {
     "id": 6,
-    "category": "science",
-    "text": "כמה ירחים יש לצדק?",
-    "options": ["12", "39", "79", "95"],
-    "correct": 3,
-    "difficulty": "hard"
+    "text": "איך הודענו על ההיריון הפעם?",
+    "options": ["בהקלטה קולית", "בהערת וידאו בוואטסאפ", "בתמונה עם כיתוב"],
+    "correct": 1,
+    "category": "family",
+    "difficulty": "easy"
   },
   {
     "id": 7,
-    "category": "history",
-    "text": "באיזו שנה הוקמה מדינת ישראל?",
-    "options": ["1945", "1947", "1948", "1949"],
-    "correct": 2,
-    "difficulty": "easy"
+    "text": "כשסיפרנו על ההיריון של איילה, על מה סבתא נורית התעכבה?",
+    "options": ["על המכתב המקדים למשחק", "על הפרחים היפים", "על לעזור ליעל למצוא את המטמון שלה"],
+    "correct": 1,
+    "category": "family",
+    "difficulty": "hard"
   },
   {
     "id": 8,
-    "category": "general",
-    "text": "מהו החיה היבשתית הגדולה ביותר?",
-    "options": ["פיל", "קרנף", "ג'ירפה", "דוב קוטב"],
-    "correct": 0,
-    "difficulty": "easy"
-  },
-  {
-    "id": 9,
-    "category": "geography",
-    "text": "מהו הנהר הארוך ביותר בעולם?",
-    "options": ["נילוס", "אמזונס", "יאנגצה", "מיסיסיפי"],
-    "correct": 0,
+    "text": "באיזה גיל איילה אמרה אבא?",
+    "options": ["7 חודשים", "8.5 חודשים", "10 חודשים"],
+    "correct": 1,
+    "category": "ayala",
     "difficulty": "medium"
   },
   {
-    "id": 10,
-    "category": "science",
-    "text": "מה היא יחידת המדידה של זרם חשמלי?",
-    "options": ["ואט", "אמפר", "וולט", "אוהם"],
+    "id": 9,
+    "text": "איך איילה קוראת לשמיכה שלה?",
+    "options": ["מיכה", "פה", "מיכי"],
     "correct": 1,
+    "category": "ayala",
+    "difficulty": "easy"
+  },
+  {
+    "id": 10,
+    "text": "העובר/ית יהיה או תהיה הנכד/ה השני/יה מצד סבתא נוני, ומהצד השני?",
+    "options": ["מספר 19", "מספר 20", "מספר 21"],
+    "correct": 1,
+    "category": "family",
     "difficulty": "medium"
   },
   {
     "id": 11,
-    "category": "entertainment",
-    "text": "מי כתב את 'הארי פוטר'?",
-    "options": ["ג'יי.קיי רולינג", "ג'ורג' מרטין", "טולקין", "ס.ס לואיס"],
-    "correct": 0,
-    "difficulty": "easy"
+    "text": "בת כמה איילה תהיה כשתהפוך לאחות גדולה?",
+    "options": ["שנתיים וחודש", "שנתיים וחצי", "שנתיים ו3 חודשים"],
+    "correct": 2,
+    "category": "ayala",
+    "difficulty": "medium"
   },
   {
     "id": 12,
-    "category": "sports",
-    "text": "איזו מדינה זכתה במונדיאל 2018?",
-    "options": ["גרמניה", "ברזיל", "צרפת", "ארגנטינה"],
-    "correct": 2,
+    "text": "באיזה חודש גילינו על ההיריון של איילה?",
+    "options": ["אוגוסט", "נובמבר", "אוקטובר"],
+    "correct": 1,
+    "category": "family",
     "difficulty": "medium"
   },
   {
     "id": 13,
-    "category": "general",
-    "text": "כמה צבעים יש בקשת?",
-    "options": ["5", "6", "7", "8"],
+    "text": "באיזה חודש גילינו על ההיריון הנוכחי?",
+    "options": ["ינואר", "דצמבר", "פברואר"],
     "correct": 2,
+    "category": "pregnancy",
     "difficulty": "easy"
   },
   {
     "id": 14,
-    "category": "geography",
-    "text": "מהי המדינה הגדולה ביותר בעולם לפי שטח?",
-    "options": ["סין", "קנדה", "רוסיה", "ארה\"ב"],
+    "text": "איזה סגנון שם הראל אוהב?",
+    "options": ["שם יוניסקס שהוא גם לבנים וגם לבנות", "שם בינלאומי", "ישראלי צברי"],
     "correct": 2,
+    "category": "preferences",
     "difficulty": "easy"
   },
   {
     "id": 15,
-    "category": "science",
-    "text": "מה היא נוסחת המים?",
-    "options": ["H2O", "CO2", "O2", "H2O2"],
-    "correct": 0,
+    "text": "באיזה קופת חולים / מרפאה נעשה המעקב?",
+    "options": ["כללית", "מכבי", "מאוחדת"],
+    "correct": 1,
+    "category": "pregnancy",
     "difficulty": "easy"
   },
   {
     "id": 16,
-    "category": "history",
-    "text": "מי היה ראש ממשלת ישראל הראשון?",
-    "options": ["יצחק רבין", "דוד בן-גוריון", "גולדה מאיר", "לוי אשכול"],
-    "correct": 1,
+    "text": "איזה ריח הכי מפריע לדפי בתחילת ההיריון?",
+    "options": ["פסטה בולונז", "קפה", "תירס"],
+    "correct": 0,
+    "category": "pregnancy",
     "difficulty": "medium"
   },
   {
     "id": 17,
-    "category": "entertainment",
-    "text": "איזה זמר ישראלי זכה באירוויזיון?",
-    "options": ["אייל גולן", "עומר אדם", "נטע ברזילי", "סטטיק ובן אל"],
-    "correct": 2,
-    "difficulty": "easy"
-  },
-  {
-    "id": 18,
-    "category": "sports",
-    "text": "כמה סטים יש במשחק טניס רגיל?",
-    "options": ["2 מתוך 3", "3 מתוך 5", "1", "תלוי בטורניר"],
-    "correct": 3,
+    "text": "הלידה של איילה הייתה מעל יממה?",
+    "options": ["נכון", "לא נכון"],
+    "correct": 0,
+    "category": "family",
     "difficulty": "medium"
   },
   {
+    "id": 18,
+    "text": "כשאיילה אוכלת היא מזמזמת?",
+    "options": ["נכון", "לא נכון"],
+    "correct": 0,
+    "category": "ayala",
+    "difficulty": "easy"
+  },
+  {
     "id": 19,
-    "category": "general",
-    "text": "כמה ימים יש בשנה מעוברת?",
-    "options": ["364", "365", "366", "367"],
-    "correct": 2,
+    "text": "יום שלישי הוא היום כיף של איילה והראל?",
+    "options": ["נכון", "לא נכון"],
+    "correct": 0,
+    "category": "family",
     "difficulty": "easy"
   },
   {
     "id": 20,
-    "category": "geography",
-    "text": "מהו ההר הגבוה ביותר בעולם?",
-    "options": ["קילימנג'רו", "אוורסט", "K2", "מקינלי"],
-    "correct": 1,
-    "difficulty": "easy"
-  },
-  {
-    "id": 21,
-    "category": "science",
-    "text": "מהו האיבר הגדול ביותר בגוף האדם?",
-    "options": ["כבד", "לב", "עור", "ריאות"],
-    "correct": 2,
-    "difficulty": "medium"
-  },
-  {
-    "id": 22,
-    "category": "entertainment",
-    "text": "איזו להקה שרה את 'Hotel California'?",
-    "options": ["The Beatles", "Led Zeppelin", "Eagles", "Pink Floyd"],
-    "correct": 2,
-    "difficulty": "medium"
-  },
-  {
-    "id": 23,
-    "category": "history",
-    "text": "באיזו שנה נפלה חומת ברלין?",
-    "options": ["1987", "1988", "1989", "1990"],
-    "correct": 2,
-    "difficulty": "medium"
-  },
-  {
-    "id": 24,
-    "category": "sports",
-    "text": "כמה אולימפיות קיץ התקיימו עד היום (עד 2024)?",
-    "options": ["28", "30", "32", "33"],
-    "correct": 3,
-    "difficulty": "hard"
-  },
-  {
-    "id": 25,
-    "category": "general",
-    "text": "מהי המהירות של האור?",
-    "options": ["300,000 ק\"מ לשנייה", "150,000 ק\"מ לשנייה", "500,000 ק\"מ לשנייה", "1,000,000 ק\"מ לשנייה"],
+    "text": "איילה יודעת לטפס לכיור בשירותים לבד?",
+    "options": ["נכון", "לא נכון"],
     "correct": 0,
+    "category": "ayala",
     "difficulty": "medium"
-  },
-  {
-    "id": 26,
-    "category": "geography",
-    "text": "איזו מדינה נקראת 'ארץ השמש העולה'?",
-    "options": ["סין", "יפן", "תאילנד", "דרום קוריאה"],
-    "correct": 1,
-    "difficulty": "easy"
-  },
-  {
-    "id": 27,
-    "category": "science",
-    "text": "מהו היסוד הכימי עם הסמל 'Au'?",
-    "options": ["כסף", "זהב", "נחושת", "אלומיניום"],
-    "correct": 1,
-    "difficulty": "medium"
-  },
-  {
-    "id": 28,
-    "category": "entertainment",
-    "text": "מי שיחק את דמות ג'ק ספארו?",
-    "options": ["ג'וני דפ", "אורלנדו בלום", "היו ג'קמן", "בראד פיט"],
-    "correct": 0,
-    "difficulty": "easy"
-  },
-  {
-    "id": 29,
-    "category": "history",
-    "text": "מי היה נשיא ארה\"ב במהלך מלחמת העולם השנייה?",
-    "options": ["הארי טרומן", "פרנקלין רוזוולט", "דווייט אייזנהאואר", "ג'ון קנדי"],
-    "correct": 1,
-    "difficulty": "medium"
-  },
-  {
-    "id": 30,
-    "category": "sports",
-    "text": "כמה אנשים יש בקבוצת כדורעף?",
-    "options": ["5", "6", "7", "8"],
-    "correct": 1,
-    "difficulty": "easy"
-  },
-  {
-    "id": 31,
-    "category": "general",
-    "text": "מהו המתכת היחידה שנוזלית בטמפרטורת החדר?",
-    "options": ["זהב", "כסף", "כספית", "נחושת"],
-    "correct": 2,
-    "difficulty": "medium"
-  },
-  {
-    "id": 32,
-    "category": "geography",
-    "text": "איזה אוקיינוס הוא הגדול ביותר?",
-    "options": ["אטלנטי", "שקט", "הודי", "ארקטי"],
-    "correct": 1,
-    "difficulty": "easy"
-  },
-  {
-    "id": 33,
-    "category": "science",
-    "text": "כמה עצמות יש בגוף אדם בוגר?",
-    "options": ["186", "206", "226", "246"],
-    "correct": 1,
-    "difficulty": "hard"
-  },
-  {
-    "id": 34,
-    "category": "entertainment",
-    "text": "איזו להקה הייתה פרדי מרקורי חלק ממנה?",
-    "options": ["The Rolling Stones", "Queen", "The Who", "The Beatles"],
-    "correct": 1,
-    "difficulty": "easy"
-  },
-  {
-    "id": 35,
-    "category": "sports",
-    "text": "מי מחזיק בשיא זריקות החופשי ב-NBA?",
-    "options": ["מייקל ג'ורדן", "סטפן קרי", "לברון ג'יימס", "קובי בראיינט"],
-    "correct": 1,
-    "difficulty": "hard"
   }
 ]
