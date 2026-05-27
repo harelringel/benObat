@@ -136,6 +136,7 @@ const KeyBoardStageMultiplayer = () => {
     const result = await openCircle(selectedCircle);
     if (result.success) {
       setSelectedCircle(null);
+      // Server will auto-advance to next player if needed
     }
   };
 
@@ -210,12 +211,13 @@ const KeyBoardStageMultiplayer = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-3xl p-4 shadow-xl mb-6"
+          className="bg-white rounded-3xl p-6 shadow-xl mb-6"
         >
           <div
-            className="grid gap-3"
+            className="grid gap-4 max-w-lg mx-auto"
             style={{
               gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
+              aspectRatio: '1',
             }}
           >
             {displayBoard.map((circle) => (
@@ -269,22 +271,6 @@ const KeyBoardStageMultiplayer = () => {
           </motion.div>
         )}
 
-        {/* Next Turn Button (Admin only, after player opened or if player has no keys) */}
-        {isAdmin && (currentPlayer?.keys === 0 || gameState === GAME_STATES.BOARD_OPENED) && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
-          >
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={nextPlayerTurn}
-              className="w-full py-5 rounded-full text-2xl font-black shadow-2xl bg-gradient-to-r from-blue-400 to-purple-500 text-white"
-            >
-              ⏭️ שחקן הבא
-            </motion.button>
-          </motion.div>
-        )}
 
         {/* Progress */}
         <motion.div

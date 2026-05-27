@@ -209,6 +209,7 @@ const KeyCircle = ({ number, opened, gender, onOpen, canOpen }) => {
                   ${gender === 'boy' ? 'text-blue-100' : 'text-pink-100'}
                   drop-shadow-lg
                 `}
+                style={{ unicodeBidi: 'plaintext', direction: 'rtl' }}
               >
                 {getText()}
               </motion.div>

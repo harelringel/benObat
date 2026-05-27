@@ -21,11 +21,48 @@ const FinalRevealMultiplayer = () => {
       // Show suspense for 3 seconds
       const suspenseTimer = setTimeout(() => {
         setShowSuspense(false);
+        setShowGender(true);
+
+        // Fire confetti
+        const colors = revealedGender === 'boy'
+          ? ['#3B82F6', '#60A5FA', '#93C5FD']
+          : ['#EC4899', '#F472B6', '#FBCFE8'];
+
+        const duration = 3000;
+        const end = Date.now() + duration;
+
+        const frame = () => {
+          confetti({
+            particleCount: 7,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 },
+            colors,
+          });
+          confetti({
+            particleCount: 7,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 },
+            colors,
+          });
+
+          if (Date.now() < end) {
+            requestAnimationFrame(frame);
+          }
+        };
+
+        frame();
+
+        // Show winner after 3 more seconds
+        setTimeout(() => {
+          setShowWinner(true);
+        }, 3000);
       }, 3000);
 
       return () => clearTimeout(suspenseTimer);
     }
-  }, [gameState]);
+  }, [gameState, revealedGender]);
 
   useEffect(() => {
     if (gameState === GAME_STATES.FINAL_REVEAL && !showGender) {
