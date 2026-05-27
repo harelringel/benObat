@@ -32,18 +32,10 @@ const AdminSetupMultiplayer = () => {
 
   // Load custom questions from localStorage on mount
   useEffect(() => {
-    const stored = localStorage.getItem(QUESTIONS_STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setAvailableQuestions(parsed);
-      } catch (e) {
-        console.error('Failed to load custom questions:', e);
-        setAvailableQuestions([...questionsBank]);
-      }
-    } else {
-      setAvailableQuestions([...questionsBank]);
-    }
+    // Always use the new default questions (20 custom questions from docx)
+    // Clear old localStorage and use new default
+    setAvailableQuestions([...questionsBank]);
+    localStorage.setItem(QUESTIONS_STORAGE_KEY, JSON.stringify(questionsBank));
   }, []);
 
   const handleSelectRandomQuestions = () => {

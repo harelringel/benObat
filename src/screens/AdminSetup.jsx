@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import useGameStore from '../store/gameStore';
-import questionsBank from '../data/questions.json';
+import defaultQuestionsData from '../data/default-questions.json';
+
+const questionsBank = defaultQuestionsData.questions;
 
 const AdminSetup = () => {
   const {
@@ -31,8 +33,8 @@ const AdminSetup = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [searchCategory, setSearchCategory] = useState('all');
 
-  // Get unique categories
-  const categories = ['all', ...new Set(questionsBank.map(q => q.category))];
+  // Get unique categories (handle questions without category)
+  const categories = ['all', ...new Set(questionsBank.map(q => q.category).filter(Boolean))];
 
   // Filter questions by category
   const filteredQuestions = searchCategory === 'all'
@@ -40,8 +42,11 @@ const AdminSetup = () => {
     : questionsBank.filter(q => q.category === searchCategory);
 
   const handleQuestionToggle = (question) => {
-    if (selectedQuestions.find(q => q.id === question.id)) {
-      setSelectedQuestions(selectedQuestions.filter(q => q.id !== question.id));
+    const questionIndex = selectedQuestions.findIndex(q =>
+      q.text === question.text || (q.id && q.id === question.id)
+    );
+    if (questionIndex >= 0) {
+      setSelectedQuestions(selectedQuestions.filter((_, i) => i !== questionIndex));
     } else {
       setSelectedQuestions([...selectedQuestions, question]);
     }
