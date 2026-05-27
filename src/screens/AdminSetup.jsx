@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import useGameStore from '../store/gameStore';
-import defaultQuestionsData from '../data/default-questions.json';
-
-const questionsBank = defaultQuestionsData.questions;
+import questionsBank from '../data/questions.json';
 
 const AdminSetup = () => {
   const {

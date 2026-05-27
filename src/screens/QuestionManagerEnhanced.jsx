@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import defaultQuestionsData from '../data/default-questions.json';
+import questionsBank from '../data/questions.json';
 import { generateQuestions, generateQuestionsPreset } from '../services/ai';
 import mammoth from 'mammoth';
-
-const questionsBank = defaultQuestionsData.questions;
 
 const QuestionManagerEnhanced = ({ onClose, onQuestionsUpdate, mode = 'edit', initialQuestions = [], onSelectQuestions, requiredCount = 10 }) => {
   const [questions, setQuestions] = useState([]);
