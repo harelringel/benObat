@@ -38,6 +38,15 @@ const AdminSetupMultiplayer = () => {
     localStorage.setItem(QUESTIONS_STORAGE_KEY, JSON.stringify(questionsBank));
   }, []);
 
+  // Auto-select random questions when reaching step 3
+  useEffect(() => {
+    if (step === 3 && availableQuestions.length > 0 && selectedQuestions.length === 0) {
+      const shuffled = [...availableQuestions].sort(() => Math.random() - 0.5);
+      const selected = shuffled.slice(0, numQuestions);
+      setSelectedQuestions(selected);
+    }
+  }, [step, availableQuestions, selectedQuestions.length, numQuestions, setSelectedQuestions]);
+
   const handleSelectRandomQuestions = () => {
     const shuffled = [...availableQuestions].sort(() => Math.random() - 0.5);
     const selected = shuffled.slice(0, numQuestions);
