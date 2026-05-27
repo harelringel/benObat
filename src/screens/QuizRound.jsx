@@ -1,63 +1,87 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useGameStore from '../store/gameStore';
+import useSocketGameStore from '../store/socketGameStore';
 import Timer from '../components/QuizGame/Timer';
 import QuestionCard from '../components/QuizGame/QuestionCard';
 
 const QuizRound = () => {
+  // Try socket store first (multiplayer), fallback to game store (single player)
+  const socketStore = useSocketGameStore();
+  const gameStore = useGameStore();
+
+  // Use socket store if it has a current question (multiplayer mode)
+  const isMultiplayer = !!socketStore.currentQuestion;
+
+  const store = isMultiplayer ? socketStore : gameStore;
+
   const {
     players,
-    selectedQuestions,
     currentQuestionIndex,
     currentPlayerIndex,
     quizPhase,
     timeLeft,
     currentAnswerer,
-    decrementTime,
-    startAnswering,
-    submitAnswer,
-    nextQuestion,
-    openForAll,
-  } = useGameStore();
+  } = store;
+
+  // For multiplayer, currentQuestion comes directly from socket
+  // For single player, it comes from selectedQuestions array
+  const currentQuestion = isMultiplayer
+    ? socketStore.currentQuestion
+    : gameStore.selectedQuestions[currentQuestionIndex];
 
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [showingResult, setShowingResult] = useState(false);
 
-  const currentQuestion = selectedQuestions[currentQuestionIndex];
   const currentPlayer = players[currentPlayerIndex];
   const answeringPlayer = players.find(p => p.id === currentAnswerer);
 
-  // Timer countdown
+  // Timer countdown (only for single player mode)
   useEffect(() => {
-    if (quizPhase === 'answering' && !showingResult) {
+    if (!isMultiplayer && quizPhase === 'answering' && !showingResult) {
       const timer = setInterval(() => {
-        decrementTime();
+        gameStore.decrementTime();
       }, 1000);
 
       return () => clearInterval(timer);
     }
-  }, [quizPhase, showingResult, decrementTime]);
+  }, [isMultiplayer, quizPhase, showingResult, gameStore]);
 
-  const handleStartAnswering = () => {
-    if (quizPhase === 'waiting') {
-      startAnswering(currentPlayer.id);
-    } else if (quizPhase === 'open_for_all') {
-      // First to click
-      startAnswering(currentPlayer.id);
+  const handleStartAnswering = async () => {
+    if (isMultiplayer) {
+      // Multiplayer: buzz in via socket
+      await socketStore.buzzIn();
+    } else {
+      // Single player: local state
+      if (quizPhase === 'waiting') {
+        gameStore.startAnswering(currentPlayer.id);
+      } else if (quizPhase === 'open_for_all') {
+        gameStore.startAnswering(currentPlayer.id);
+      }
     }
   };
 
-  const handleAnswer = (answerIndex) => {
+  const handleAnswer = async (answerIndex) => {
     setSelectedAnswer(answerIndex);
     setShowingResult(true);
-    submitAnswer(answerIndex);
 
-    // Show result for 3 seconds then move on
-    setTimeout(() => {
-      setShowingResult(false);
-      setSelectedAnswer(null);
-      nextQuestion();
-    }, 3000);
+    if (isMultiplayer) {
+      // Multiplayer: submit via socket
+      await socketStore.submitAnswer(answerIndex);
+      // Server will handle timing and next question
+      setTimeout(() => {
+        setShowingResult(false);
+        setSelectedAnswer(null);
+      }, 3000);
+    } else {
+      // Single player: local state
+      gameStore.submitAnswer(answerIndex);
+      setTimeout(() => {
+        setShowingResult(false);
+        setSelectedAnswer(null);
+        gameStore.nextQuestion();
+      }, 3000);
+    }
   };
 
   const canCurrentPlayerAnswer =
