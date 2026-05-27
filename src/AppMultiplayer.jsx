@@ -3,7 +3,7 @@ import useSocketGameStore, { GAME_STATES } from './store/socketGameStore';
 import WelcomeMultiplayer from './screens/WelcomeMultiplayer';
 import AdminSetupMultiplayer from './screens/AdminSetupMultiplayer';
 import PlayerLobbyMultiplayer from './screens/PlayerLobbyMultiplayer';
-import QuizRound from './screens/QuizRound';
+import QuizRoundMultiplayer from './screens/QuizRoundMultiplayer';
 import KeyBoardStage from './screens/KeyBoardStage';
 import FinalReveal from './screens/FinalReveal';
 
@@ -24,7 +24,7 @@ function AppMultiplayer() {
       case GAME_STATES.QUIZ_QUESTION:
       case GAME_STATES.QUIZ_ANSWERING:
       case GAME_STATES.QUIZ_RESULT:
-        return <QuizRound />;
+        return <QuizRoundMultiplayer />;
 
       case GAME_STATES.BOARD_INTRO:
       case GAME_STATES.BOARD_PLAYER_TURN:

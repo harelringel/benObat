@@ -91,14 +91,26 @@ const useSocketGameStore = create((set, get) => ({
     });
 
     // Quiz started
-    socket.on('quiz-started', ({ gameState, currentQuestion, currentPlayerIndex, players }) => {
+    socket.on('quiz-started', ({ gameState, currentQuestion, currentPlayerIndex, currentAnswerer, players, quizPhase, timeLeft }) => {
       set({
         gameState,
         currentQuestion,
         currentPlayerIndex,
+        currentAnswerer,
         players,
-        quizPhase: 'waiting'
+        quizPhase,
+        timeLeft
       });
+    });
+
+    // Timer update
+    socket.on('timer-update', ({ timeLeft, quizPhase }) => {
+      set({ timeLeft, quizPhase });
+    });
+
+    // Opened to all players
+    socket.on('opened-to-all', ({ quizPhase, timeLeft }) => {
+      set({ quizPhase, timeLeft });
     });
 
     // Player buzzed in
@@ -119,16 +131,16 @@ const useSocketGameStore = create((set, get) => ({
     });
 
     // Next question
-    socket.on('next-question', ({ currentQuestion, currentPlayerIndex, currentQuestionIndex, players }) => {
+    socket.on('next-question', ({ currentQuestion, currentPlayerIndex, currentQuestionIndex, currentAnswerer, players, quizPhase, timeLeft }) => {
       set({
         currentQuestion,
         currentPlayerIndex,
         currentQuestionIndex,
+        currentAnswerer,
         players,
-        quizPhase: 'waiting',
-        currentAnswerer: null,
+        quizPhase,
         lastAnswerCorrect: null,
-        timeLeft: get().timerSeconds
+        timeLeft
       });
     });
 
