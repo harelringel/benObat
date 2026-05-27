@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import questionsBank from '../data/questions.json';
 import { generateQuestions, generateQuestionsPreset } from '../services/ai';
+import mammoth from 'mammoth';
 
 const QuestionManagerEnhanced = ({ onClose, onQuestionsUpdate, mode = 'edit', initialQuestions = [], onSelectQuestions, requiredCount = 10 }) => {
   const [questions, setQuestions] = useState([]);
@@ -18,6 +19,11 @@ const QuestionManagerEnhanced = ({ onClose, onQuestionsUpdate, mode = 'edit', in
   const [aiTopic, setAiTopic] = useState('');
   const [aiDifficulty, setAiDifficulty] = useState('medium');
   const [generatedQuestions, setGeneratedQuestions] = useState([]);
+
+  // File import state
+  const [fileLoading, setFileLoading] = useState(false);
+  const [fileError, setFileError] = useState(null);
+  const [importedQuestions, setImportedQuestions] = useState([]);
 
   const [currentQuestion, setCurrentQuestion] = useState({
     text: '',
@@ -155,6 +161,70 @@ const QuestionManagerEnhanced = ({ onClose, onQuestionsUpdate, mode = 'edit', in
     alert(`${generatedQuestions.length} שאלות נוספו בהצלחה!`);
   };
 
+  // File import handler
+  const handleFileImport = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.docx')) {
+      setFileError('נא להעלות קובץ Word בפורמט .docx');
+      return;
+    }
+
+    setFileLoading(true);
+    setFileError(null);
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await mammoth.extractRawText({ arrayBuffer });
+      const text = result.value;
+
+      // Parse questions from text
+      // Expected format: Each question block separated by empty lines
+      // Question text followed by 4 options, with correct answer marked with *
+      const questionBlocks = text.split(/\n\s*\n/).filter(block => block.trim());
+      const parsed = [];
+
+      for (const block of questionBlocks) {
+        const lines = block.split('\n').filter(line => line.trim());
+        if (lines.length < 5) continue; // Need at least question + 4 options
+
+        const questionText = lines[0].trim();
+        const options = lines.slice(1, 5).map(opt => opt.replace(/^[*\-•]\s*/, '').trim());
+
+        // Find correct answer (marked with *)
+        let correctIndex = lines.slice(1, 5).findIndex(line => line.trim().startsWith('*'));
+        if (correctIndex === -1) correctIndex = 0; // Default to first option
+
+        parsed.push({
+          text: questionText,
+          options: options,
+          correct: correctIndex,
+          category: 'imported',
+          difficulty: 'medium'
+        });
+      }
+
+      if (parsed.length === 0) {
+        setFileError('לא נמצאו שאלות בקובץ. ודא שהפורמט נכון: שאלה ואחריה 4 תשובות (סמן תשובה נכונה עם *)');
+        return;
+      }
+
+      setImportedQuestions(parsed);
+    } catch (error) {
+      console.error('File import error:', error);
+      setFileError('שגיאה בקריאת הקובץ: ' + error.message);
+    } finally {
+      setFileLoading(false);
+    }
+  };
+
+  const handleAddImportedQuestions = () => {
+    setQuestions([...questions, ...importedQuestions]);
+    setImportedQuestions([]);
+    alert(`${importedQuestions.length} שאלות נוספו בהצלחה!`);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <motion.div
@@ -220,6 +290,16 @@ const QuestionManagerEnhanced = ({ onClose, onQuestionsUpdate, mode = 'edit', in
                 }`}
               >
                 🤖 יצירה עם AI
+              </button>
+              <button
+                onClick={() => setActiveTab('file')}
+                className={`flex-1 py-4 px-6 font-bold transition-all ${
+                  activeTab === 'file'
+                    ? 'bg-white text-orange-600 border-b-4 border-orange-500'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                📄 ייבוא מקובץ
               </button>
             </div>
           </div>
@@ -564,6 +644,116 @@ const QuestionManagerEnhanced = ({ onClose, onQuestionsUpdate, mode = 'edit', in
                                 key={i}
                                 className={`p-2 rounded ${
                                   i === q.correct ? 'bg-green-100 text-green-800 font-semibold' : 'bg-gray-50 text-gray-600'
+                                }`}
+                              >
+                                {i === q.correct && '✓ '}{opt}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+
+            {/* TAB 4: File Import */}
+            {activeTab === 'file' && mode === 'edit' && (
+              <motion.div
+                key="file"
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+              >
+                <h3 className="text-2xl font-black text-gray-800 mb-6">
+                  📄 ייבוא שאלות מקובץ Word
+                </h3>
+
+                <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-6 mb-6">
+                  <h4 className="font-bold text-orange-800 mb-3">📋 פורמט הקובץ:</h4>
+                  <div className="text-sm text-orange-700 space-y-2 bg-white p-4 rounded-lg">
+                    <p>• כל שאלה בפסקה נפרדת (עם שורה ריקה בין שאלות)</p>
+                    <p>• שורה ראשונה: טקסט השאלה</p>
+                    <p>• 4 שורות הבאות: התשובות</p>
+                    <p>• סמן את התשובה הנכונה עם כוכבית (*) בתחילת השורה</p>
+                  </div>
+
+                  <div className="mt-4 bg-white p-4 rounded-lg border border-orange-200">
+                    <p className="font-bold text-orange-800 mb-2">דוגמה:</p>
+                    <pre className="text-xs text-gray-700 whitespace-pre-wrap">
+מהי בירת ישראל?
+תל אביב
+חיפה
+*ירושלים
+באר שבע
+
+מהו צבע השמיים?
+אדום
+ירוק
+*כחול
+צהוב
+                    </pre>
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <label className="block mb-4">
+                    <div className="bg-gradient-to-br from-orange-400 to-orange-500 text-white p-6 rounded-2xl cursor-pointer hover:scale-105 transition-all text-center font-bold text-lg shadow-lg">
+                      <div className="text-5xl mb-3">📁</div>
+                      <div>לחץ לבחירת קובץ Word (.docx)</div>
+                      <input
+                        type="file"
+                        accept=".docx"
+                        onChange={handleFileImport}
+                        className="hidden"
+                        disabled={fileLoading}
+                      />
+                    </div>
+                  </label>
+                </div>
+
+                {fileLoading && (
+                  <div className="text-center py-8">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-orange-200 border-t-orange-600"></div>
+                    <p className="mt-4 text-gray-600">קורא קובץ...</p>
+                  </div>
+                )}
+
+                {fileError && (
+                  <div className="bg-red-50 border-2 border-red-300 rounded-xl p-4 mb-6">
+                    <p className="text-red-700 font-bold">❌ {fileError}</p>
+                  </div>
+                )}
+
+                {importedQuestions.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-orange-50 border-2 border-orange-300 rounded-xl p-6"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-xl font-black text-orange-700">
+                        ✅ נמצאו {importedQuestions.length} שאלות!
+                      </h4>
+                      <button
+                        onClick={handleAddImportedQuestions}
+                        className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-full font-bold shadow-lg transition-all"
+                      >
+                        הוסף את כל השאלות
+                      </button>
+                    </div>
+
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                      {importedQuestions.map((q, index) => (
+                        <div key={index} className="bg-white rounded-lg p-4">
+                          <p className="font-bold text-gray-800 mb-2">{q.text}</p>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            {q.options.map((opt, i) => (
+                              <div
+                                key={i}
+                                className={`p-2 rounded ${
+                                  i === q.correct ? 'bg-orange-100 text-orange-800 font-semibold' : 'bg-gray-50 text-gray-600'
                                 }`}
                               >
                                 {i === q.correct && '✓ '}{opt}
