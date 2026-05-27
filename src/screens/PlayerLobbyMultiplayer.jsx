@@ -24,7 +24,9 @@ const PlayerLobbyMultiplayer = () => {
     }
   };
 
-  const allReady = players.length === numPlayers && players.every(p => p.ready);
+  const allReady = players.every(p => p.ready);
+  const allSlotsFilled = players.length === numPlayers;
+  const canStart = players.length > 0;
   const currentPlayer = players.find(p => p.id === currentUserId);
   const isReady = currentPlayer?.ready || false;
 
@@ -159,34 +161,40 @@ const PlayerLobbyMultiplayer = () => {
             animate={{ opacity: 1, y: 0 }}
             className="max-w-md mx-auto space-y-4"
           >
-            {/* Status message */}
-            {!allReady && (
+            {/* Warning messages */}
+            {!allReady && players.length > 0 && (
               <div className="bg-yellow-100 border-2 border-yellow-300 rounded-2xl p-4 text-center">
-                <div className="text-yellow-800 font-bold">
-                  ⏳ ממתין ש{players.filter(p => !p.ready).length} שחקנים יסמנו מוכן
+                <div className="text-yellow-800 font-bold text-sm">
+                  ⚠️ {players.filter(p => !p.ready).length} שחקנים עדיין לא מוכנים
+                </div>
+                <div className="text-yellow-700 text-xs mt-1">
+                  (ניתן להתחיל בכל מקרה)
                 </div>
               </div>
             )}
 
-            {players.length !== numPlayers && (
+            {!allSlotsFilled && (
               <div className="bg-blue-100 border-2 border-blue-300 rounded-2xl p-4 text-center">
-                <div className="text-blue-800 font-bold">
-                  ⏳ ממתין ל-{numPlayers - players.length} שחקנים נוספים
+                <div className="text-blue-800 font-bold text-sm">
+                  💡 {numPlayers - players.length} מקומות נוספים פנויים
+                </div>
+                <div className="text-blue-700 text-xs mt-1">
+                  (ניתן להתחיל עם {players.length} שחקנים)
                 </div>
               </div>
             )}
 
-            {/* Start button */}
+            {/* Start button - always enabled if there are players */}
             <button
               onClick={handleStartQuiz}
-              disabled={!allReady}
+              disabled={!canStart}
               className={`w-full py-6 rounded-full font-bold text-2xl shadow-2xl transition-all ${
-                allReady
+                canStart
                   ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:scale-105'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
-              {allReady ? '🎮 התחל משחק!' : '⏳ ממתין לשחקנים...'}
+              {canStart ? '🎮 התחל משחק!' : '⏳ אין שחקנים'}
             </button>
           </motion.div>
         )}
@@ -199,7 +207,9 @@ const PlayerLobbyMultiplayer = () => {
           className="text-center text-gray-500 text-sm mt-8"
         >
           <p>💡 השחקנים יכולים להצטרף באמצעות הקוד {roomPin}</p>
-          <p className="mt-2">המשחק יתחיל אוטומטית כשכל השחקנים יסמנו מוכן</p>
+          {userRole === 'admin' && (
+            <p className="mt-2">כמנהל, אתה יכול להתחיל את המשחק בכל רגע!</p>
+          )}
         </motion.div>
       </div>
     </div>
