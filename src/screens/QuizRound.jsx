@@ -30,6 +30,11 @@ const QuizRound = () => {
     ? socketStore.currentQuestion
     : gameStore.selectedQuestions[currentQuestionIndex];
 
+  // Total questions count
+  const totalQuestions = isMultiplayer
+    ? socketStore.numQuestions
+    : gameStore.totalQuestions;
+
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [showingResult, setShowingResult] = useState(false);
 
@@ -84,10 +89,18 @@ const QuizRound = () => {
     }
   };
 
+  const handleTimerExpire = () => {
+    if (!isMultiplayer) {
+      // Single player: call local store
+      gameStore.openForAll();
+    }
+    // For multiplayer, server handles this automatically
+  };
+
   const canCurrentPlayerAnswer =
     (quizPhase === 'waiting' && !currentAnswerer) ||
     (quizPhase === 'open_for_all' && !currentAnswerer) ||
-    (currentAnswerer === currentPlayer.id && quizPhase === 'answering');
+    (currentAnswerer === currentPlayer?.id && quizPhase === 'answering');
 
   if (!currentQuestion) {
     return (
@@ -109,7 +122,7 @@ const QuizRound = () => {
           className="sticky top-0 z-20 bg-white shadow-lg py-3 px-4 -mx-4 mb-4"
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-bold text-gray-700">שאלה {currentQuestionIndex + 1}/{selectedQuestions.length}</span>
+            <span className="text-sm font-bold text-gray-700">שאלה {currentQuestionIndex + 1}/{totalQuestions}</span>
             {quizPhase === 'answering' && !showingResult && (
               <motion.div
                 animate={{ scale: [1, 1.1, 1] }}
@@ -124,7 +137,7 @@ const QuizRound = () => {
           <div className="w-full bg-gray-200 rounded-full h-2">
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: `${((currentQuestionIndex + 1) / selectedQuestions.length) * 100}%` }}
+              animate={{ width: `${((currentQuestionIndex + 1) / totalQuestions) * 100}%` }}
               className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 h-2 rounded-full"
               transition={{ duration: 0.5 }}
             />
@@ -200,7 +213,7 @@ const QuizRound = () => {
         <QuestionCard
           question={currentQuestion}
           questionNumber={currentQuestionIndex + 1}
-          totalQuestions={selectedQuestions.length}
+          totalQuestions={totalQuestions}
           phase={quizPhase}
           onAnswer={handleAnswer}
           canAnswer={canCurrentPlayerAnswer && quizPhase === 'answering' && !showingResult}
@@ -237,7 +250,7 @@ const QuizRound = () => {
             <h3 className="text-lg font-bold text-gray-700 mb-3">⏱️ זמן נותר</h3>
             <Timer
               seconds={timeLeft}
-              onExpire={openForAll}
+              onExpire={handleTimerExpire}
               isActive={!showingResult}
             />
           </motion.div>
