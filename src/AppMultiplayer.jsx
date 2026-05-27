@@ -4,8 +4,8 @@ import WelcomeMultiplayer from './screens/WelcomeMultiplayer';
 import AdminSetupMultiplayer from './screens/AdminSetupMultiplayer';
 import PlayerLobbyMultiplayer from './screens/PlayerLobbyMultiplayer';
 import QuizRoundMultiplayer from './screens/QuizRoundMultiplayer';
-import KeyBoardStage from './screens/KeyBoardStage';
-import FinalReveal from './screens/FinalReveal';
+import KeyBoardStageMultiplayer from './screens/KeyBoardStageMultiplayer';
+import FinalRevealMultiplayer from './screens/FinalRevealMultiplayer';
 
 function AppMultiplayer() {
   const { gameState } = useSocketGameStore();
@@ -30,12 +30,12 @@ function AppMultiplayer() {
       case GAME_STATES.BOARD_PLAYER_TURN:
       case GAME_STATES.BOARD_OPENING:
       case GAME_STATES.BOARD_OPENED:
-        return <KeyBoardStage />;
+        return <KeyBoardStageMultiplayer />;
 
       case GAME_STATES.REVEAL_SUSPENSE:
       case GAME_STATES.FINAL_REVEAL:
       case GAME_STATES.GAME_OVER:
-        return <FinalReveal />;
+        return <FinalRevealMultiplayer />;
 
       default:
         return <WelcomeMultiplayer />;

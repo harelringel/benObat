@@ -52,6 +52,7 @@ const useSocketGameStore = create((set, get) => ({
 
   // Board state
   openedCircles: [],
+  boardLayout: {}, // Maps circleIndex to gender (boy/girl)
   circleCounts: { boyCount: 0, girlCount: 0 },
 
   // Reveal state
@@ -154,12 +155,16 @@ const useSocketGameStore = create((set, get) => ({
 
     // Circle opened
     socket.on('circle-opened', ({ circleIndex, gender, playerId, openedCircles, players, counts }) => {
-      set({
+      set((state) => ({
         openedCircles,
+        boardLayout: {
+          ...state.boardLayout,
+          [circleIndex]: gender
+        },
         players,
         circleCounts: counts,
         gameState: GAME_STATES.BOARD_OPENED
-      });
+      }));
     });
 
     // Player turn changed
@@ -353,6 +358,7 @@ const useSocketGameStore = create((set, get) => ({
       currentAnswerer: null,
       lastAnswerCorrect: null,
       openedCircles: [],
+      boardLayout: {},
       circleCounts: { boyCount: 0, girlCount: 0 },
       winner: null,
       revealedGender: null
