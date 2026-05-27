@@ -35,7 +35,7 @@ const useSocketGameStore = create((set, get) => ({
   // Admin Settings (only for admin)
   babyGender: null,
   numPlayers: 4,
-  numQuestions: 10,
+  numQuestions: 20,
   timerSeconds: 40,
   boardSize: 16,
   selectedQuestions: [],
@@ -345,7 +345,7 @@ const useSocketGameStore = create((set, get) => ({
       gameState: GAME_STATES.WELCOME,
       babyGender: null,
       numPlayers: 4,
-      numQuestions: 10,
+      numQuestions: 20,
       timerSeconds: 40,
       boardSize: 16,
       selectedQuestions: [],
