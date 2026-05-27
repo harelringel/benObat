@@ -6,7 +6,7 @@ import QuestionManagerEnhanced from './QuestionManagerEnhanced';
 
 const QUESTIONS_STORAGE_KEY = 'benorbat_custom_questions';
 const QUESTIONS_VERSION_KEY = 'benorbat_questions_version';
-const CURRENT_QUESTIONS_VERSION = '2.0'; // Updated with 20 custom questions from docx
+const CURRENT_QUESTIONS_VERSION = '3.0'; // Force reload - 20 custom pregnancy questions
 
 const AdminSetupMultiplayer = () => {
   const {
