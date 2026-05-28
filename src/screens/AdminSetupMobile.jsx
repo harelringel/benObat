@@ -63,6 +63,54 @@ const AdminSetupMobile = () => {
     setShowQuestionManager(true);
   };
 
+  // Handle JSON file import
+  const handleImportQuestions = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const json = JSON.parse(e.target.result);
+
+        // Validate JSON structure
+        if (!Array.isArray(json)) {
+          alert('קובץ JSON לא תקין - צריך להיות מערך של שאלות');
+          return;
+        }
+
+        // Validate question format
+        const isValid = json.every(q =>
+          q.hasOwnProperty('text') &&
+          q.hasOwnProperty('options') &&
+          q.hasOwnProperty('correct') &&
+          Array.isArray(q.options)
+        );
+
+        if (!isValid) {
+          alert('פורמט שאלות לא תקין - כל שאלה צריכה: text, options (מערך), correct');
+          return;
+        }
+
+        // Merge with existing questions (avoid duplicates by text)
+        const existingTexts = new Set(availableQuestions.map(q => q.text));
+        const newQuestions = json.filter(q => !existingTexts.has(q.text));
+
+        const merged = [...availableQuestions, ...newQuestions];
+        handleQuestionsUpdate(merged);
+
+        alert(`✅ יובאו ${newQuestions.length} שאלות חדשות!\nסה"כ ${merged.length} שאלות זמינות.`);
+      } catch (error) {
+        alert('שגיאה בקריאת הקובץ - ודא שזה קובץ JSON תקין');
+        console.error('JSON parse error:', error);
+      }
+    };
+
+    reader.readAsText(file);
+    // Reset input so same file can be imported again
+    event.target.value = '';
+  };
+
   const handleStartGame = () => {
     if (!babyGender) {
       alert('נא לבחור את מין העובר');
@@ -216,7 +264,7 @@ const AdminSetupMobile = () => {
               <input
                 type="range"
                 min="5"
-                max="15"
+                max="20"
                 value={numQuestions}
                 onChange={(e) => setNumQuestions(Number(e.target.value))}
                 className="w-full h-3 bg-gradient-to-r from-pink-200 to-blue-200 rounded-full appearance-none cursor-pointer"
@@ -342,6 +390,26 @@ const AdminSetupMobile = () => {
               <div className="text-4xl">🔧</div>
             </div>
           </motion.button>
+
+          {/* Import JSON Button */}
+          <motion.label
+            whileTap={{ scale: 0.95 }}
+            className="w-full bg-gradient-to-r from-green-500 to-teal-500 text-white p-6 rounded-3xl shadow-xl cursor-pointer block"
+          >
+            <div className="flex items-center justify-between">
+              <div className="text-right">
+                <div className="text-xl font-bold mb-1">📥 יבוא שאלות</div>
+                <div className="text-sm text-green-100">יבוא קובץ JSON עם שאלות מותאמות</div>
+              </div>
+              <div className="text-4xl">📄</div>
+            </div>
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleImportQuestions}
+              className="hidden"
+            />
+          </motion.label>
 
           {/* Selected Questions Count */}
           {selectedQuestions.length > 0 && (
