@@ -24,7 +24,8 @@ const useSocketGameStore = create((set, get) => ({
   userRole: null, // 'admin' or 'player'
   currentUserId: null,
   currentUserName: null,
-  playerToken: null, // NEW: For reconnection
+  playerToken: null, // NEW: For player reconnection
+  adminToken: null, // NEW: For admin reconnection
 
   // Room state
   roomPin: null,
@@ -79,13 +80,19 @@ const useSocketGameStore = create((set, get) => ({
     socket.on('connect', () => {
       set({ connected: true, connectionError: null });
 
-      const savedToken = localStorage.getItem('playerToken');
+      const savedPlayerToken = localStorage.getItem('playerToken');
+      const savedAdminToken = localStorage.getItem('adminToken');
       const savedPin = localStorage.getItem('roomPin');
 
+      // If we have an adminToken, we're admin - attempt reconnection
+      if (savedAdminToken && savedPin) {
+        console.log('[Auto-rejoin Admin] Attempting reconnection...');
+        get().rejoinAdmin(savedPin, savedAdminToken);
+      }
       // If we have a playerToken, we're a player - attempt reconnection
-      if (savedToken && savedPin) {
-        console.log('[Auto-rejoin] Attempting reconnection...');
-        get().rejoinRoom(savedPin, savedToken);
+      else if (savedPlayerToken && savedPin) {
+        console.log('[Auto-rejoin Player] Attempting reconnection...');
+        get().rejoinRoom(savedPin, savedPlayerToken);
       }
     });
 
@@ -278,12 +285,14 @@ const useSocketGameStore = create((set, get) => ({
 
       set({
         roomPin: response.pin,
+        adminToken: response.adminToken,
         gameState: GAME_STATES.LOBBY,
         userRole: 'admin'
       });
 
-      // Admin doesn't need to save PIN (they created it)
+      // Save admin token for reconnection
       localStorage.setItem('roomPin', response.pin);
+      localStorage.setItem('adminToken', response.adminToken);
 
       return { success: true, pin: response.pin };
     } catch (error) {
@@ -347,6 +356,35 @@ const useSocketGameStore = create((set, get) => ({
 
       // Clear invalid token
       localStorage.removeItem('playerToken');
+      localStorage.removeItem('roomPin');
+
+      return { success: false, error: error.message };
+    }
+  },
+
+  // NEW: Admin rejoin with adminToken
+  rejoinAdmin: async (pin, adminToken) => {
+    try {
+      set({ reconnecting: true });
+
+      const response = await socketService.rejoinAdmin(pin, adminToken);
+
+      set({
+        roomPin: pin,
+        userRole: 'admin',
+        adminToken: adminToken,
+        reconnecting: false,
+        ...response.room // Sync to current room state
+      });
+
+      console.log('[Rejoin Admin] Successfully rejoined as admin');
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to rejoin as admin:', error);
+      set({ reconnecting: false });
+
+      // Clear invalid token
+      localStorage.removeItem('adminToken');
       localStorage.removeItem('roomPin');
 
       return { success: false, error: error.message };
@@ -472,6 +510,7 @@ const useSocketGameStore = create((set, get) => ({
       currentUserId: null,
       currentUserName: null,
       playerToken: null,
+      adminToken: null,
       roomPin: null,
       gameState: GAME_STATES.WELCOME,
       babyGender: null,

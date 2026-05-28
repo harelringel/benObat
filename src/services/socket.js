@@ -118,6 +118,24 @@ class SocketService {
     });
   }
 
+  // NEW: Admin rejoins with adminToken
+  rejoinAdmin(pin, adminToken) {
+    return new Promise((resolve, reject) => {
+      if (!this.socket) {
+        reject(new Error('Socket not connected'));
+        return;
+      }
+
+      this.socket.emit('admin:rejoin', { pin, adminToken }, (response) => {
+        if (response.success) {
+          resolve(response);
+        } else {
+          reject(new Error(response.error));
+        }
+      });
+    });
+  }
+
   // Player toggles ready status
   playerReady(pin, playerId) {
     return new Promise((resolve, reject) => {
