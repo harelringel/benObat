@@ -66,7 +66,6 @@ const useSocketGameStore = create((set, get) => ({
 
   // Deprecated (kept for backwards compat, remove later)
   currentPlayerIndex: 0,
-  quizPhase: 'waiting',
   timeLeft: 40,
   currentAnswerer: null,
   lastAnswerCorrect: null,
@@ -574,7 +573,6 @@ const useSocketGameStore = create((set, get) => ({
       winners: null,
       // Legacy
       currentPlayerIndex: 0,
-      quizPhase: 'waiting',
       timeLeft: 40,
       currentAnswerer: null,
       lastAnswerCorrect: null,
