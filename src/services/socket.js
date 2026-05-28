@@ -298,15 +298,33 @@ class SocketService {
     });
   }
 
-  // NEW: Admin shows winner (Issue #4 - optional manual advance)
-  showWinner(pin) {
+  // Round 3 Issue #2: Host announces results (KEY_WALL_DONE → RESULTS_COMPARISON)
+  announceResults(pin, hostToken) {
     return new Promise((resolve, reject) => {
       if (!this.socket) {
         reject(new Error('Socket not connected'));
         return;
       }
 
-      this.socket.emit('results:show-winner', { pin }, (response) => {
+      this.socket.emit('game:announce', { pin, hostToken }, (response) => {
+        if (response.success) {
+          resolve(response);
+        } else {
+          reject(new Error(response.error));
+        }
+      });
+    });
+  }
+
+  // Round 3 Issue #3: Host reveals gender (RESULTS_COMPARISON → RESULTS_REVEAL)
+  revealGender(pin, hostToken) {
+    return new Promise((resolve, reject) => {
+      if (!this.socket) {
+        reject(new Error('Socket not connected'));
+        return;
+      }
+
+      this.socket.emit('game:reveal', { pin, hostToken }, (response) => {
         if (response.success) {
           resolve(response);
         } else {

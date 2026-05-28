@@ -1,16 +1,18 @@
 import { create } from 'zustand';
 import socketService from '../services/socket';
 
-// Game states - Updated for new server state machine
+// Game states - Updated for Round 3 state machine
 export const GAME_STATES = {
   WELCOME: 'WELCOME',
   ADMIN_SETUP: 'ADMIN_SETUP',
   LOBBY: 'LOBBY',
-  ASKING: 'ASKING',                  // New: Question being asked
-  REVIEW: 'REVIEW',                  // New: Review correct answer
-  KEY_WALL: 'KEY_WALL',              // New: Turn-based key claiming
-  RESULTS_COMPARISON: 'RESULTS_COMPARISON',  // New: Comparison table
-  RESULTS_WINNER: 'RESULTS_WINNER',  // New: Winner announcement
+  ASKING: 'ASKING',                  // Question being asked (primary or open window)
+  REVIEW: 'REVIEW',                  // Review correct answer
+  KEY_WALL: 'KEY_WALL',              // Turn-based key claiming
+  KEY_WALL_DONE: 'KEY_WALL_DONE',    // Round 3: Waiting for host to announce
+  RESULTS_COMPARISON: 'RESULTS_COMPARISON',  // Comparison table
+  RESULTS_REVEAL: 'RESULTS_REVEAL',  // Round 3: Gender reveal
+  RESULTS_WINNER: 'RESULTS_WINNER',  // Legacy
   GAME_OVER: 'GAME_OVER',
 };
 
@@ -44,7 +46,9 @@ const useSocketGameStore = create((set, get) => ({
   currentQuestionIndex: 0,
   currentQuestion: null,
 
-  // Quiz state (ASKING/REVIEW phases)
+  // Quiz state (ASKING/REVIEW phases) - Round 3: turn-based
+  quizPhase: null,         // 'primary' or 'open'
+  activePlayerId: null,    // Current active player for primary window
   remainingTimeMs: 0,
   playerAnswers: [],       // NEW: Track who answered
   reviewResults: null,     // NEW: Results for review phase
@@ -134,7 +138,7 @@ const useSocketGameStore = create((set, get) => ({
     });
 
     // =========================================================================
-    // QUIZ EVENTS (Issue #1: New state machine)
+    // QUIZ EVENTS (Round 3 Issue #1: Turn-based with primary/open windows)
     // =========================================================================
 
     socket.on('quiz:started', (phaseState) => {
@@ -142,14 +146,40 @@ const useSocketGameStore = create((set, get) => ({
         gameState: GAME_STATES.ASKING,
         currentQuestion: phaseState.currentQuestion,
         currentQuestionIndex: phaseState.currentQuestionIndex,
+        quizPhase: phaseState.quizPhase, // 'primary' or 'open'
+        activePlayerId: phaseState.activePlayerId,
         remainingTimeMs: phaseState.remainingTimeMs,
         playerAnswers: phaseState.playerAnswers || [],
         players: phaseState.players
       });
     });
 
-    socket.on('quiz:timer', ({ remainingMs }) => {
-      set({ remainingTimeMs: remainingMs });
+    socket.on('question:started', (data) => {
+      set({
+        gameState: GAME_STATES.ASKING,
+        currentQuestion: { question: data.prompt, options: data.options },
+        currentQuestionIndex: data.index,
+        quizPhase: data.phase, // 'primary'
+        activePlayerId: data.activePlayerId,
+        remainingTimeMs: data.deadlineMs - Date.now(),
+        playerAnswers: [],
+        reviewResults: null,
+        correctAnswer: null
+      });
+    });
+
+    socket.on('question:opened', (data) => {
+      set({
+        quizPhase: 'open',
+        remainingTimeMs: data.deadlineMs - Date.now()
+      });
+    });
+
+    socket.on('question:timer', ({ remainingMs, phase }) => {
+      set({
+        remainingTimeMs: remainingMs,
+        quizPhase: phase
+      });
     });
 
     socket.on('quiz:answered', ({ playerId, players }) => {
@@ -159,25 +189,12 @@ const useSocketGameStore = create((set, get) => ({
       }));
     });
 
-    socket.on('quiz:review', ({ correctAnswer, results, reviewDurationMs, players }) => {
+    socket.on('question:ended', ({ questionId, correctOptionId, resolvedBy, perPlayer, leaderboard, reviewDurationMs }) => {
       set({
         gameState: GAME_STATES.REVIEW,
-        correctAnswer,
-        reviewResults: results,
-        players
-      });
-    });
-
-    socket.on('quiz:question', (phaseState) => {
-      set({
-        gameState: GAME_STATES.ASKING,
-        currentQuestion: phaseState.currentQuestion,
-        currentQuestionIndex: phaseState.currentQuestionIndex,
-        remainingTimeMs: phaseState.remainingTimeMs,
-        playerAnswers: [],
-        reviewResults: null,
-        correctAnswer: null,
-        players: phaseState.players
+        correctAnswer: correctOptionId,
+        reviewResults: perPlayer,
+        players: leaderboard
       });
     });
 
@@ -221,10 +238,18 @@ const useSocketGameStore = create((set, get) => ({
     });
 
     // =========================================================================
-    // RESULTS EVENTS (Issue #4: Two-phase results)
+    // RESULTS EVENTS (Round 3 Issue #2 & #3: Host-gated transitions)
     // =========================================================================
 
-    socket.on('results:comparison', ({ rows, actualGender, comparisonDurationMs }) => {
+    socket.on('announce:ready', ({ scoreBoy, scoreGirl }) => {
+      set({
+        gameState: GAME_STATES.KEY_WALL_DONE,
+        scoreBoy,
+        scoreGirl
+      });
+    });
+
+    socket.on('results:comparison', ({ rows, actualGender }) => {
       set({
         gameState: GAME_STATES.RESULTS_COMPARISON,
         comparisonTable: { rows, actualGender },
@@ -232,10 +257,11 @@ const useSocketGameStore = create((set, get) => ({
       });
     });
 
-    socket.on('results:winner', ({ winners, actualGender }) => {
+    socket.on('results:reveal', ({ actualGender, winners, rows }) => {
       set({
-        gameState: GAME_STATES.RESULTS_WINNER,
+        gameState: GAME_STATES.RESULTS_REVEAL,
         winners,
+        comparisonTable: { rows, actualGender },
         revealedGender: actualGender
       });
     });
@@ -470,14 +496,26 @@ const useSocketGameStore = create((set, get) => ({
     }
   },
 
-  // Admin shows winner (NEW: Optional manual advance)
-  showWinner: async () => {
+  // Round 3 Issue #2: Host announces results (KEY_WALL_DONE → RESULTS_COMPARISON)
+  announceResults: async () => {
     try {
-      const { roomPin } = get();
-      await socketService.showWinner(roomPin);
+      const { roomPin, adminToken } = get();
+      await socketService.announceResults(roomPin, adminToken);
       return { success: true };
     } catch (error) {
-      console.error('Failed to show winner:', error);
+      console.error('Failed to announce results:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Round 3 Issue #3: Host reveals gender (RESULTS_COMPARISON → RESULTS_REVEAL)
+  revealGender: async () => {
+    try {
+      const { roomPin, adminToken } = get();
+      await socketService.revealGender(roomPin, adminToken);
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to reveal gender:', error);
       return { success: false, error: error.message };
     }
   },
@@ -522,6 +560,8 @@ const useSocketGameStore = create((set, get) => ({
       players: [],
       currentQuestionIndex: 0,
       currentQuestion: null,
+      quizPhase: null,
+      activePlayerId: null,
       remainingTimeMs: 0,
       playerAnswers: [],
       reviewResults: null,

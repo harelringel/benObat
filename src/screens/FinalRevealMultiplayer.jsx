@@ -5,33 +5,42 @@ import useSocketGameStore, { GAME_STATES } from '../store/socketGameStore';
 import LeaveGameButton from '../components/LeaveGameButton';
 
 /**
- * Final Results Screen - Two-phase system
- * Issue #4: Guaranteed two-phase flow
+ * Final Results Screen - Round 3 host-gated system
  *
- * Phase 1 (RESULTS_COMPARISON):
- * - Show comparison table with all players ranked
- * - Display correct keys vs total keys per player
- * - Reveal actual baby gender
- * - Auto-advance after 8 seconds
+ * Phase 1 (KEY_WALL_DONE):
+ * - Host sees "הכרז על התוצאות" button
+ * - Guests see holding screen with key tally
+ * - Nothing auto-advances
  *
- * Phase 2 (RESULTS_WINNER):
- * - Announce winner(s) with confetti
- * - Handle co-winners (multiple players with same score)
- * - Show final ranking
+ * Phase 2 (RESULTS_COMPARISON):
+ * - Show comparison table
+ * - Host sees "חשוף את המין" button
+ * - Guests see waiting hint
+ *
+ * Phase 3 (RESULTS_REVEAL):
+ * - Full-screen gender reveal
+ * - Show winner(s) with confetti
+ * - Color-flood animation
  */
 const FinalRevealMultiplayer = () => {
   const {
     gameState,
     comparisonTable,
     winners,
+    revealedGender,
     actualGender,
     players,
+    scoreBoy,
+    scoreGirl,
+    userRole,
+    announceResults,
+    revealGender,
     resetGame
   } = useSocketGameStore();
 
-  // Fire confetti when winner is shown
+  // Fire confetti when reveal is shown
   useEffect(() => {
-    if (gameState === GAME_STATES.RESULTS_WINNER && actualGender) {
+    if (gameState === GAME_STATES.RESULTS_REVEAL && (revealedGender || actualGender)) {
       const colors = actualGender === 'boy'
         ? ['#3B82F6', '#60A5FA', '#93C5FD']
         : ['#EC4899', '#F472B6', '#FBCFE8'];
@@ -62,9 +71,81 @@ const FinalRevealMultiplayer = () => {
 
       frame();
     }
-  }, [gameState, actualGender]);
+  }, [gameState, revealedGender, actualGender]);
 
-  // PHASE 1: RESULTS_COMPARISON - Show comparison table
+  // PHASE 0: KEY_WALL_DONE - Waiting for host to announce (Round 3 Issue #2)
+  if (gameState === GAME_STATES.KEY_WALL_DONE) {
+    const isHost = userRole === 'admin';
+
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-purple-50 via-blue-50 to-pink-50 pb-8">
+        <div className="max-w-md mx-auto px-4 pt-8">
+          <LeaveGameButton />
+
+          {/* Key Tally */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-3xl p-6 shadow-xl mb-6"
+          >
+            <h2 className="text-2xl font-black text-gray-800 text-center mb-6">
+              סיימנו את קיר המפתחות!
+            </h2>
+            <div className="flex justify-around">
+              <div className="text-center">
+                <div className="text-6xl mb-2">💙</div>
+                <div className="text-4xl font-black text-blue-600">{scoreBoy || 0}</div>
+                <div className="text-sm text-gray-600">מפתחות בן</div>
+              </div>
+              <div className="text-center">
+                <div className="text-6xl mb-2">💗</div>
+                <div className="text-4xl font-black text-pink-600">{scoreGirl || 0}</div>
+                <div className="text-sm text-gray-600">מפתחות בת</div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Host Button or Waiting Screen */}
+          {isHost ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={announceResults}
+                className="w-full py-6 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full text-2xl font-black shadow-2xl"
+              >
+                🎉 הכרז על התוצאות
+              </motion.button>
+              <p className="text-center text-sm text-gray-600 mt-3">
+                לחץ כדי להציג את טבלת ההשוואה
+              </p>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="text-center p-6"
+            >
+              <div className="text-6xl mb-4">⏳</div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                ממתינים למנחה...
+              </h3>
+              <p className="text-gray-600">
+                המנחה עומד להכריז על התוצאות
+              </p>
+            </motion.div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // PHASE 1: RESULTS_COMPARISON - Show comparison table (Round 3: host-gated)
   if (gameState === GAME_STATES.RESULTS_COMPARISON) {
     if (!comparisonTable) {
       return (
@@ -188,34 +269,56 @@ const FinalRevealMultiplayer = () => {
             </div>
           </motion.div>
 
-          {/* Auto-advance message */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 2 }}
-            className="text-center text-gray-600 text-sm"
-          >
-            ⏳ ממשיכים להכרזת הזוכה בעוד רגעים...
-          </motion.div>
+          {/* Host Button or Waiting Message (Round 3 Issue #3) */}
+          {userRole === 'admin' ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 2 }}
+            >
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={revealGender}
+                className="w-full py-6 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-full text-2xl font-black shadow-2xl"
+              >
+                ✨ חשוף את המין
+              </motion.button>
+              <p className="text-center text-sm text-gray-600 mt-3">
+                לחץ לחשיפת המין הסופית
+              </p>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 2 }}
+              className="text-center text-gray-600 text-sm"
+            >
+              ⏳ ממתינים למנחה לחשוף את המין...
+            </motion.div>
+          )}
         </div>
       </div>
     );
   }
 
-  // PHASE 2: RESULTS_WINNER - Show winner(s)
-  if (gameState === GAME_STATES.RESULTS_WINNER) {
-    if (!winners || !actualGender) {
+  // PHASE 2: RESULTS_REVEAL - Full-screen gender reveal (Round 3 Issue #3)
+  if (gameState === GAME_STATES.RESULTS_REVEAL || gameState === GAME_STATES.RESULTS_WINNER) {
+    const gender = revealedGender || actualGender;
+
+    if (!winners || !gender) {
       return (
         <div className="min-h-screen bg-gradient-to-b from-purple-50 via-blue-50 to-pink-50 flex items-center justify-center">
           <div className="text-center">
             <div className="text-6xl mb-4">⏳</div>
-            <div className="text-2xl font-bold text-gray-800">טוען זוכה...</div>
+            <div className="text-2xl font-bold text-gray-800">טוען חשיפה...</div>
           </div>
         </div>
       );
     }
 
-    const genderBgColor = actualGender === 'boy'
+    const genderBgColor = gender === 'boy'
       ? 'from-blue-100 via-blue-50 to-white'
       : 'from-pink-100 via-pink-50 to-white';
 
@@ -234,7 +337,7 @@ const FinalRevealMultiplayer = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: 'spring' }}
             className={`bg-gradient-to-br ${
-              actualGender === 'boy'
+              gender === 'boy'
                 ? 'from-blue-400 to-blue-500'
                 : 'from-pink-400 to-pink-500'
             } rounded-3xl p-8 shadow-2xl text-white text-center mb-6`}

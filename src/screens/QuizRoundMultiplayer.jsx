@@ -11,6 +11,8 @@ const QuizRoundMultiplayer = () => {
     numQuestions,
     players,
     currentUserId,
+    quizPhase,
+    activePlayerId,
     remainingTimeMs,
     playerAnswers,
     reviewResults,
@@ -35,8 +37,15 @@ const QuizRoundMultiplayer = () => {
   // Check if I've answered
   const iHaveAnswered = playerAnswers?.includes(currentUserId) || hasAnswered;
 
-  // ASKING state - can answer
-  const canAnswer = gameState === GAME_STATES.ASKING && !iHaveAnswered;
+  // Round 3 Issue #1: Turn-based answering
+  // Primary phase: only active player can answer
+  // Open phase: anyone who hasn't answered can answer
+  const isMyTurn = activePlayerId === currentUserId;
+  const canAnswer = gameState === GAME_STATES.ASKING && !iHaveAnswered &&
+    (quizPhase === 'open' || isMyTurn);
+
+  // Find active player's name for banner
+  const activePlayer = players.find(p => p.id === activePlayerId);
 
   const handleAnswer = async (answerIndex) => {
     if (!canAnswer) return;
@@ -197,10 +206,30 @@ const QuizRoundMultiplayer = () => {
               שניות נותרו
             </div>
             <div className="text-sm text-white/80 mt-2">
-              {playerAnswers?.length || 0} / {players.length} ענו
+              {quizPhase === 'primary' ? 'תור פרטי' : 'תור פתוח'} • {playerAnswers?.length || 0} / {players.length} ענו
             </div>
           </div>
         </motion.div>
+
+        {/* Round 3 Issue #1: Turn Banner - show during primary phase */}
+        <AnimatePresence>
+          {quizPhase === 'primary' && !isMyTurn && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: -20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="bg-gradient-to-r from-orange-400 to-yellow-500 rounded-3xl p-4 text-center shadow-xl mb-6"
+            >
+              <div className="text-4xl mb-2">⏳</div>
+              <h2 className="text-xl font-bold text-white">
+                תור של {activePlayer?.name || 'שחקן אחר'}
+              </h2>
+              <p className="text-sm text-white/90 mt-1">
+                המתן לתורך או לחלון הפתוח
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Progress Bar */}
         <motion.div
