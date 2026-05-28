@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import useSocketGameStore, { GAME_STATES } from '../store/socketGameStore';
 import KeyCircle from '../components/KeyBoard/KeyCircle';
