@@ -21,19 +21,20 @@ function AppMultiplayer() {
       case GAME_STATES.LOBBY:
         return <PlayerLobbyMultiplayer />;
 
-      case GAME_STATES.QUIZ_QUESTION:
-      case GAME_STATES.QUIZ_ANSWERING:
-      case GAME_STATES.QUIZ_RESULT:
+      // NEW: ASKING and REVIEW states for quiz
+      case GAME_STATES.ASKING:
+      case GAME_STATES.REVIEW:
         return <QuizRoundMultiplayer />;
 
-      case GAME_STATES.BOARD_INTRO:
-      case GAME_STATES.BOARD_PLAYER_TURN:
-      case GAME_STATES.BOARD_OPENING:
-      case GAME_STATES.BOARD_OPENED:
+      // NEW: KEY_WALL state for key claiming
+      case GAME_STATES.KEY_WALL:
         return <KeyBoardStageMultiplayer />;
 
-      case GAME_STATES.REVEAL_SUSPENSE:
-      case GAME_STATES.FINAL_REVEAL:
+      // NEW: RESULTS_COMPARISON and RESULTS_WINNER states
+      case GAME_STATES.RESULTS_COMPARISON:
+      case GAME_STATES.RESULTS_WINNER:
+        return <FinalRevealMultiplayer />;
+
       case GAME_STATES.GAME_OVER:
         return <FinalRevealMultiplayer />;
 

@@ -82,7 +82,8 @@ const useSocketGameStore = create((set, get) => ({
       const savedToken = localStorage.getItem('playerToken');
       const savedPin = localStorage.getItem('roomPin');
 
-      if (savedToken && savedPin && get().userRole === 'player') {
+      // If we have a playerToken, we're a player - attempt reconnection
+      if (savedToken && savedPin) {
         console.log('[Auto-rejoin] Attempting reconnection...');
         get().rejoinRoom(savedPin, savedToken);
       }
