@@ -140,19 +140,6 @@ const useSocketGameStore = create((set, get) => ({
     // QUIZ EVENTS (Round 3 Issue #1: Turn-based with primary/open windows)
     // =========================================================================
 
-    socket.on('quiz:started', (phaseState) => {
-      set({
-        gameState: GAME_STATES.ASKING,
-        currentQuestion: phaseState.currentQuestion,
-        currentQuestionIndex: phaseState.currentQuestionIndex,
-        quizPhase: phaseState.quizPhase, // 'primary' or 'open'
-        activePlayerId: phaseState.activePlayerId,
-        remainingTimeMs: phaseState.remainingTimeMs,
-        playerAnswers: phaseState.playerAnswers || [],
-        players: phaseState.players
-      });
-    });
-
     socket.on('question:started', (data) => {
       set({
         gameState: GAME_STATES.ASKING,
