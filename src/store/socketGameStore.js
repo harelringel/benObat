@@ -102,7 +102,10 @@ const useSocketGameStore = create((set, get) => ({
     // =========================================================================
 
     socket.on('player-joined', ({ player, players, room }) => {
-      set({ players });
+      set({
+        players,
+        numPlayers: room.config?.numPlayers || get().numPlayers
+      });
     });
 
     socket.on('player-left', ({ playerId, playerName, players }) => {
@@ -308,7 +311,8 @@ const useSocketGameStore = create((set, get) => ({
         currentUserId: response.player.id,
         currentUserName: playerName,
         playerToken: response.playerToken,
-        players: response.room.players
+        players: response.room.players,
+        numPlayers: response.room.config?.numPlayers || get().numPlayers
       });
 
       return { success: true };
