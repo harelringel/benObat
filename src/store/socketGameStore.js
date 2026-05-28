@@ -1,20 +1,16 @@
 import { create } from 'zustand';
 import socketService from '../services/socket';
 
-// Game states
+// Game states - Updated for new server state machine
 export const GAME_STATES = {
   WELCOME: 'WELCOME',
   ADMIN_SETUP: 'ADMIN_SETUP',
   LOBBY: 'LOBBY',
-  QUIZ_QUESTION: 'QUIZ_QUESTION',
-  QUIZ_ANSWERING: 'QUIZ_ANSWERING',
-  QUIZ_RESULT: 'QUIZ_RESULT',
-  BOARD_INTRO: 'BOARD_INTRO',
-  BOARD_PLAYER_TURN: 'BOARD_PLAYER_TURN',
-  BOARD_OPENING: 'BOARD_OPENING',
-  BOARD_OPENED: 'BOARD_OPENED',
-  REVEAL_SUSPENSE: 'REVEAL_SUSPENSE',
-  FINAL_REVEAL: 'FINAL_REVEAL',
+  ASKING: 'ASKING',                  // New: Question being asked
+  REVIEW: 'REVIEW',                  // New: Review correct answer
+  KEY_WALL: 'KEY_WALL',              // New: Turn-based key claiming
+  RESULTS_COMPARISON: 'RESULTS_COMPARISON',  // New: Comparison table
+  RESULTS_WINNER: 'RESULTS_WINNER',  // New: Winner announcement
   GAME_OVER: 'GAME_OVER',
 };
 
@@ -22,11 +18,13 @@ const useSocketGameStore = create((set, get) => ({
   // Connection state
   connected: false,
   connectionError: null,
+  reconnecting: false,
 
-  // User role
+  // User role & identity
   userRole: null, // 'admin' or 'player'
   currentUserId: null,
   currentUserName: null,
+  playerToken: null, // NEW: For reconnection
 
   // Room state
   roomPin: null,
@@ -44,18 +42,32 @@ const useSocketGameStore = create((set, get) => ({
   players: [],
   currentQuestionIndex: 0,
   currentQuestion: null,
+
+  // Quiz state (ASKING/REVIEW phases)
+  remainingTimeMs: 0,
+  playerAnswers: [],       // NEW: Track who answered
+  reviewResults: null,     // NEW: Results for review phase
+  correctAnswer: null,     // NEW: For review phase
+
+  // Key wall state (NEW)
+  keys: [],                // Array of key objects
+  currentTurnPlayerId: null,
+  scoreBoy: 0,
+  scoreGirl: 0,
+
+  // Results state (NEW)
+  comparisonTable: null,   // Comparison table data
+  winners: null,           // Winner(s) data
+
+  // Deprecated (kept for backwards compat, remove later)
   currentPlayerIndex: 0,
   quizPhase: 'waiting',
   timeLeft: 40,
   currentAnswerer: null,
   lastAnswerCorrect: null,
-
-  // Board state
   openedCircles: [],
-  boardLayout: {}, // Maps circleIndex to gender (boy/girl)
+  boardLayout: {},
   circleCounts: { boyCount: 0, girlCount: 0 },
-
-  // Reveal state
   winner: null,
   revealedGender: null,
 
@@ -63,9 +75,17 @@ const useSocketGameStore = create((set, get) => ({
   initializeSocket: () => {
     const socket = socketService.connect();
 
-    // Setup event listeners
+    // Try to auto-rejoin if we have a saved token
     socket.on('connect', () => {
       set({ connected: true, connectionError: null });
+
+      const savedToken = localStorage.getItem('playerToken');
+      const savedPin = localStorage.getItem('roomPin');
+
+      if (savedToken && savedPin && get().userRole === 'player') {
+        console.log('[Auto-rejoin] Attempting reconnection...');
+        get().rejoinRoom(savedPin, savedToken);
+      }
     });
 
     socket.on('disconnect', () => {
@@ -76,122 +96,168 @@ const useSocketGameStore = create((set, get) => ({
       set({ connectionError: error.message });
     });
 
-    // Player joined event
+    // =========================================================================
+    // LOBBY EVENTS
+    // =========================================================================
+
     socket.on('player-joined', ({ player, players, room }) => {
       set({ players });
     });
 
-    // Player left event
     socket.on('player-left', ({ playerId, playerName, players }) => {
       set({ players });
     });
 
-    // Player ready changed
+    socket.on('player-disconnected', ({ playerId, playerName, players }) => {
+      set({ players });
+      console.log(`[Disconnect] ${playerName} disconnected`);
+    });
+
+    socket.on('player-reconnected', ({ playerId, playerName, players }) => {
+      set({ players, reconnecting: false });
+      console.log(`[Reconnect] ${playerName} reconnected`);
+    });
+
     socket.on('player-ready-changed', ({ players, allReady }) => {
       set({ players });
     });
 
-    // Quiz started
-    socket.on('quiz-started', ({ gameState, currentQuestion, currentPlayerIndex, currentAnswerer, players, quizPhase, timeLeft }) => {
+    // =========================================================================
+    // QUIZ EVENTS (Issue #1: New state machine)
+    // =========================================================================
+
+    socket.on('quiz:started', (phaseState) => {
       set({
-        gameState,
-        currentQuestion,
-        currentPlayerIndex,
-        currentAnswerer,
-        players,
-        quizPhase,
-        timeLeft
+        gameState: GAME_STATES.ASKING,
+        currentQuestion: phaseState.currentQuestion,
+        currentQuestionIndex: phaseState.currentQuestionIndex,
+        remainingTimeMs: phaseState.remainingTimeMs,
+        playerAnswers: phaseState.playerAnswers || [],
+        players: phaseState.players
       });
     });
 
-    // Timer update
-    socket.on('timer-update', ({ timeLeft, quizPhase }) => {
-      set({ timeLeft, quizPhase });
+    socket.on('quiz:timer', ({ remainingMs }) => {
+      set({ remainingTimeMs: remainingMs });
     });
 
-    // Opened to all players
-    socket.on('opened-to-all', ({ quizPhase, timeLeft }) => {
-      set({ quizPhase, timeLeft });
-    });
-
-    // Player buzzed in
-    socket.on('player-buzzed', ({ playerId, playerName, phase }) => {
-      set({
-        currentAnswerer: playerId,
-        quizPhase: phase
-      });
-    });
-
-    // Answer submitted
-    socket.on('answer-submitted', ({ playerId, answerIndex, isCorrect, correctAnswer, players, phase }) => {
-      set({
-        lastAnswerCorrect: isCorrect,
-        quizPhase: phase,
-        players
-      });
-    });
-
-    // Next question
-    socket.on('next-question', ({ currentQuestion, currentPlayerIndex, currentQuestionIndex, currentAnswerer, players, quizPhase, timeLeft }) => {
-      set({
-        currentQuestion,
-        currentPlayerIndex,
-        currentQuestionIndex,
-        currentAnswerer,
-        players,
-        quizPhase,
-        lastAnswerCorrect: null,
-        timeLeft
-      });
-    });
-
-    // Quiz finished
-    socket.on('quiz-finished', ({ gameState, players }) => {
-      set({
-        gameState,
-        players
-      });
-    });
-
-    // Circle opened
-    socket.on('circle-opened', ({ circleIndex, gender, playerId, openedCircles, players, counts }) => {
+    socket.on('quiz:answered', ({ playerId, players }) => {
       set((state) => ({
-        openedCircles,
-        boardLayout: {
-          ...state.boardLayout,
-          [circleIndex]: gender
-        },
-        players,
-        circleCounts: counts,
-        gameState: GAME_STATES.BOARD_OPENED
+        playerAnswers: [...state.playerAnswers, playerId],
+        players
       }));
     });
 
-    // Player turn changed
-    socket.on('player-turn-changed', ({ currentPlayerIndex, players }) => {
+    socket.on('quiz:review', ({ correctAnswer, results, reviewDurationMs, players }) => {
       set({
-        currentPlayerIndex,
-        players,
-        gameState: GAME_STATES.BOARD_PLAYER_TURN
+        gameState: GAME_STATES.REVIEW,
+        correctAnswer,
+        reviewResults: results,
+        players
       });
     });
 
-    // Game finished
-    socket.on('game-finished', ({ gameState, winner, players, babyGender }) => {
+    socket.on('quiz:question', (phaseState) => {
       set({
-        gameState,
-        winner,
-        players,
-        revealedGender: babyGender
+        gameState: GAME_STATES.ASKING,
+        currentQuestion: phaseState.currentQuestion,
+        currentQuestionIndex: phaseState.currentQuestionIndex,
+        remainingTimeMs: phaseState.remainingTimeMs,
+        playerAnswers: [],
+        reviewResults: null,
+        correctAnswer: null,
+        players: phaseState.players
       });
     });
 
-    // Admin disconnected
+    // =========================================================================
+    // KEY WALL EVENTS (Issue #3: Turn-based system)
+    // =========================================================================
+
+    socket.on('keywall:started', (phaseState) => {
+      set({
+        gameState: GAME_STATES.KEY_WALL,
+        keys: phaseState.keys,
+        currentTurnPlayerId: phaseState.currentTurnPlayerId,
+        remainingTimeMs: phaseState.remainingTimeMs,
+        scoreBoy: phaseState.scoreBoy,
+        scoreGirl: phaseState.scoreGirl,
+        players: phaseState.players
+      });
+    });
+
+    socket.on('keywall:turn', ({ currentTurnPlayerId, remainingMs }) => {
+      set({
+        currentTurnPlayerId,
+        remainingTimeMs: remainingMs
+      });
+    });
+
+    socket.on('keywall:timer', ({ remainingMs, currentTurnPlayerId }) => {
+      set({
+        remainingTimeMs: remainingMs,
+        currentTurnPlayerId
+      });
+    });
+
+    socket.on('keywall:claimed', ({ keyId, gender, playerId, auto, keys, scoreBoy, scoreGirl, players }) => {
+      set({
+        keys,
+        scoreBoy,
+        scoreGirl,
+        players
+      });
+    });
+
+    // =========================================================================
+    // RESULTS EVENTS (Issue #4: Two-phase results)
+    // =========================================================================
+
+    socket.on('results:comparison', ({ rows, actualGender, comparisonDurationMs }) => {
+      set({
+        gameState: GAME_STATES.RESULTS_COMPARISON,
+        comparisonTable: { rows, actualGender },
+        revealedGender: actualGender
+      });
+    });
+
+    socket.on('results:winner', ({ winners, actualGender }) => {
+      set({
+        gameState: GAME_STATES.RESULTS_WINNER,
+        winners,
+        revealedGender: actualGender
+      });
+    });
+
+    // =========================================================================
+    // ADMIN EVENTS
+    // =========================================================================
+
     socket.on('admin-disconnected', () => {
       alert('המנהל התנתק - המשחק הסתיים');
       get().resetGame();
     });
+
+    // =========================================================================
+    // LEGACY EVENTS (backwards compatibility - can remove later)
+    // =========================================================================
+
+    socket.on('quiz-started', (data) => {
+      console.warn('[Legacy] quiz-started event - update server?');
+    });
+
+    socket.on('timer-update', (data) => {
+      console.warn('[Legacy] timer-update event - update server?');
+    });
+
+    socket.on('answer-submitted', (data) => {
+      console.warn('[Legacy] answer-submitted event - update server?');
+    });
   },
+
+  // =========================================================================
+  // ROOM ACTIONS
+  // =========================================================================
 
   // Admin creates a room
   createRoom: async () => {
@@ -212,6 +278,9 @@ const useSocketGameStore = create((set, get) => ({
         userRole: 'admin'
       });
 
+      // Admin doesn't need to save PIN (they created it)
+      localStorage.setItem('roomPin', response.pin);
+
       return { success: true, pin: response.pin };
     } catch (error) {
       console.error('Failed to create room:', error);
@@ -224,12 +293,20 @@ const useSocketGameStore = create((set, get) => ({
     try {
       const response = await socketService.joinRoom(pin, playerName);
 
+      // NEW: Save playerToken for reconnection
+      if (response.playerToken) {
+        localStorage.setItem('playerToken', response.playerToken);
+        localStorage.setItem('roomPin', pin);
+        localStorage.setItem('playerName', playerName);
+      }
+
       set({
         roomPin: pin,
         gameState: GAME_STATES.LOBBY,
         userRole: 'player',
         currentUserId: response.player.id,
         currentUserName: playerName,
+        playerToken: response.playerToken,
         players: response.room.players
       });
 
@@ -239,6 +316,68 @@ const useSocketGameStore = create((set, get) => ({
       return { success: false, error: error.message };
     }
   },
+
+  // NEW: Rejoin with playerToken (Issue #2)
+  rejoinRoom: async (pin, playerToken) => {
+    try {
+      set({ reconnecting: true });
+
+      const response = await socketService.rejoinRoom(pin, playerToken);
+
+      set({
+        roomPin: pin,
+        userRole: 'player',
+        currentUserId: response.player.id,
+        currentUserName: response.player.name,
+        playerToken: playerToken,
+        reconnecting: false,
+        ...response.currentState // Sync to current game phase
+      });
+
+      console.log('[Rejoin] Successfully rejoined game');
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to rejoin room:', error);
+      set({ reconnecting: false });
+
+      // Clear invalid token
+      localStorage.removeItem('playerToken');
+      localStorage.removeItem('roomPin');
+
+      return { success: false, error: error.message };
+    }
+  },
+
+  // NEW: Explicit leave game (Issue #2)
+  leaveGame: async () => {
+    try {
+      const { roomPin, playerToken } = get();
+
+      if (!playerToken) {
+        // Admin or not in game
+        get().resetGame();
+        return { success: true };
+      }
+
+      await socketService.leaveGame(roomPin, playerToken);
+
+      // Clear localStorage
+      localStorage.removeItem('playerToken');
+      localStorage.removeItem('roomPin');
+      localStorage.removeItem('playerName');
+
+      get().resetGame();
+
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to leave game:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // =========================================================================
+  // GAME ACTIONS
+  // =========================================================================
 
   // Player toggles ready
   toggleReady: async () => {
@@ -264,67 +403,46 @@ const useSocketGameStore = create((set, get) => ({
     }
   },
 
-  // Player buzzes in
-  buzzIn: async () => {
-    try {
-      const { roomPin, currentUserId } = get();
-      await socketService.buzzIn(roomPin, currentUserId);
-      return { success: true };
-    } catch (error) {
-      console.error('Failed to buzz in:', error);
-      return { success: false, error: error.message };
-    }
-  },
-
-  // Submit answer
+  // Submit answer (NEW: Uses quiz:answer event)
   submitAnswer: async (answerIndex) => {
     try {
       const { roomPin, currentUserId } = get();
-      const result = await socketService.submitAnswer(roomPin, currentUserId, answerIndex);
-      return { success: true, isCorrect: result.isCorrect };
+      await socketService.submitQuizAnswer(roomPin, currentUserId, answerIndex);
+      return { success: true };
     } catch (error) {
       console.error('Failed to submit answer:', error);
       return { success: false, error: error.message };
     }
   },
 
-  // Move to next question (admin only)
-  nextQuestion: async () => {
-    try {
-      const { roomPin } = get();
-      await socketService.nextQuestion(roomPin);
-      return { success: true };
-    } catch (error) {
-      console.error('Failed to move to next question:', error);
-      return { success: false, error: error.message };
-    }
-  },
-
-  // Open circle
-  openCircle: async (circleIndex) => {
+  // Claim key (NEW: Uses keywall:claim event)
+  claimKey: async (keyId) => {
     try {
       const { roomPin, currentUserId } = get();
-      const result = await socketService.openCircle(roomPin, currentUserId, circleIndex);
-      return { success: true, gender: result.gender };
-    } catch (error) {
-      console.error('Failed to open circle:', error);
-      return { success: false, error: error.message };
-    }
-  },
-
-  // Next player turn (admin only)
-  nextPlayerTurn: async () => {
-    try {
-      const { roomPin } = get();
-      await socketService.nextPlayerTurn(roomPin);
+      await socketService.claimKey(roomPin, currentUserId, keyId);
       return { success: true };
     } catch (error) {
-      console.error('Failed to move to next turn:', error);
+      console.error('Failed to claim key:', error);
       return { success: false, error: error.message };
     }
   },
 
-  // Admin setup actions
+  // Admin shows winner (NEW: Optional manual advance)
+  showWinner: async () => {
+    try {
+      const { roomPin } = get();
+      await socketService.showWinner(roomPin);
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to show winner:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // =========================================================================
+  // ADMIN SETUP ACTIONS
+  // =========================================================================
+
   setBabyGender: (gender) => set({ babyGender: gender }),
   setNumPlayers: (num) => set({ numPlayers: num }),
   setNumQuestions: (num) => set({ numQuestions: num }),
@@ -332,15 +450,23 @@ const useSocketGameStore = create((set, get) => ({
   setBoardSize: (size) => set({ boardSize: size }),
   setSelectedQuestions: (questions) => set({ selectedQuestions: questions }),
 
-  // Reset game
+  // =========================================================================
+  // RESET
+  // =========================================================================
+
   resetGame: () => {
     socketService.disconnect();
+
+    // Don't clear localStorage here - let leaveGame() handle it
+
     set({
       connected: false,
       connectionError: null,
+      reconnecting: false,
       userRole: null,
       currentUserId: null,
       currentUserName: null,
+      playerToken: null,
       roomPin: null,
       gameState: GAME_STATES.WELCOME,
       babyGender: null,
@@ -352,6 +478,17 @@ const useSocketGameStore = create((set, get) => ({
       players: [],
       currentQuestionIndex: 0,
       currentQuestion: null,
+      remainingTimeMs: 0,
+      playerAnswers: [],
+      reviewResults: null,
+      correctAnswer: null,
+      keys: [],
+      currentTurnPlayerId: null,
+      scoreBoy: 0,
+      scoreGirl: 0,
+      comparisonTable: null,
+      winners: null,
+      // Legacy
       currentPlayerIndex: 0,
       quizPhase: 'waiting',
       timeLeft: 40,

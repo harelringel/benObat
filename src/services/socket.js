@@ -82,6 +82,42 @@ class SocketService {
     });
   }
 
+  // NEW: Player rejoins with token (Issue #2)
+  rejoinRoom(pin, playerToken) {
+    return new Promise((resolve, reject) => {
+      if (!this.socket) {
+        reject(new Error('Socket not connected'));
+        return;
+      }
+
+      this.socket.emit('room:rejoin', { pin, playerToken }, (response) => {
+        if (response.success) {
+          resolve(response);
+        } else {
+          reject(new Error(response.error));
+        }
+      });
+    });
+  }
+
+  // NEW: Player explicitly leaves game (Issue #2)
+  leaveGame(pin, playerToken) {
+    return new Promise((resolve, reject) => {
+      if (!this.socket) {
+        reject(new Error('Socket not connected'));
+        return;
+      }
+
+      this.socket.emit('room:leave', { pin, playerToken }, (response) => {
+        if (response.success) {
+          resolve(response);
+        } else {
+          reject(new Error(response.error));
+        }
+      });
+    });
+  }
+
   // Player toggles ready status
   playerReady(pin, playerId) {
     return new Promise((resolve, reject) => {
@@ -136,7 +172,7 @@ class SocketService {
     });
   }
 
-  // Submit answer
+  // Submit answer (Legacy - for backwards compat)
   submitAnswer(pin, playerId, answerIndex) {
     return new Promise((resolve, reject) => {
       if (!this.socket) {
@@ -145,6 +181,24 @@ class SocketService {
       }
 
       this.socket.emit('submit-answer', { pin, playerId, answerIndex }, (response) => {
+        if (response.success) {
+          resolve(response);
+        } else {
+          reject(new Error(response.error));
+        }
+      });
+    });
+  }
+
+  // NEW: Submit quiz answer (Issue #1)
+  submitQuizAnswer(pin, playerId, answerIndex) {
+    return new Promise((resolve, reject) => {
+      if (!this.socket) {
+        reject(new Error('Socket not connected'));
+        return;
+      }
+
+      this.socket.emit('quiz:answer', { pin, playerId, answerIndex }, (response) => {
         if (response.success) {
           resolve(response);
         } else {
@@ -199,6 +253,42 @@ class SocketService {
       }
 
       this.socket.emit('next-player-turn', { pin }, (response) => {
+        if (response.success) {
+          resolve(response);
+        } else {
+          reject(new Error(response.error));
+        }
+      });
+    });
+  }
+
+  // NEW: Claim key on wall (Issue #3)
+  claimKey(pin, playerId, keyId) {
+    return new Promise((resolve, reject) => {
+      if (!this.socket) {
+        reject(new Error('Socket not connected'));
+        return;
+      }
+
+      this.socket.emit('keywall:claim', { pin, playerId, keyId }, (response) => {
+        if (response.success) {
+          resolve(response);
+        } else {
+          reject(new Error(response.error));
+        }
+      });
+    });
+  }
+
+  // NEW: Admin shows winner (Issue #4 - optional manual advance)
+  showWinner(pin) {
+    return new Promise((resolve, reject) => {
+      if (!this.socket) {
+        reject(new Error('Socket not connected'));
+        return;
+      }
+
+      this.socket.emit('results:show-winner', { pin }, (response) => {
         if (response.success) {
           resolve(response);
         } else {

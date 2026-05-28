@@ -1,18 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useSocketGameStore from '../store/socketGameStore';
-import LeaveGameButton from '../components/LeaveGameButton';
 
-/**
- * Player Lobby - Multiplayer mode
- * Issue #2: Shows disconnected players with "מנותק" label
- *
- * Features:
- * - Display all players with connection status
- * - Grey out disconnected players
- * - Show reconnection indicator
- * - Leave game button for players
- */
 const PlayerLobbyMultiplayer = () => {
   const {
     roomPin,
@@ -20,7 +9,6 @@ const PlayerLobbyMultiplayer = () => {
     userRole,
     currentUserId,
     numPlayers,
-    reconnecting,
     toggleReady,
     startQuiz
   } = useSocketGameStore();
@@ -45,24 +33,6 @@ const PlayerLobbyMultiplayer = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 via-pink-50 to-blue-50 p-4">
       <div className="max-w-4xl mx-auto pt-8">
-        <LeaveGameButton />
-
-        {/* Reconnection Banner */}
-        <AnimatePresence>
-          {reconnecting && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="bg-yellow-100 border-2 border-yellow-400 rounded-2xl p-4 mb-4 text-center"
-            >
-              <div className="text-yellow-800 font-bold">
-                🔄 מתחבר מחדש לשרת...
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Room PIN Display */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -86,7 +56,7 @@ const PlayerLobbyMultiplayer = () => {
                 לובי שחקנים
               </h1>
               <p className="text-gray-600">
-                {players.filter(p => p.connected).length} / {numPlayers} שחקנים מחוברים
+                {players.length} / {numPlayers} שחקנים
               </p>
             </div>
           </div>
@@ -112,9 +82,7 @@ const PlayerLobbyMultiplayer = () => {
                 exit={{ opacity: 0, scale: 0.8 }}
                 transition={{ delay: index * 0.1 }}
                 className={`rounded-3xl p-6 shadow-lg transition-all ${
-                  !player.connected
-                    ? 'bg-gray-200 text-gray-500'
-                    : player.ready
+                  player.ready
                     ? 'bg-gradient-to-br from-green-400 to-green-500 text-white'
                     : 'bg-white text-gray-800'
                 } ${
@@ -124,7 +92,7 @@ const PlayerLobbyMultiplayer = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="text-4xl">
-                      {!player.connected ? '🔌' : player.ready ? '✅' : '⏳'}
+                      {player.ready ? '✅' : '⏳'}
                     </div>
                     <div>
                       <div className="text-2xl font-black mb-1">
@@ -132,33 +100,16 @@ const PlayerLobbyMultiplayer = () => {
                         {player.id === currentUserId && (
                           <span className="text-sm mr-2 opacity-75">(את/ה)</span>
                         )}
-                        {!player.connected && (
-                          <span className="text-sm mr-2 text-red-600 bg-red-100 px-2 py-1 rounded-full">
-                            מנותק
-                          </span>
-                        )}
                       </div>
-                      <div className={`text-sm ${
-                        !player.connected
-                          ? 'text-gray-400'
-                          : player.ready
-                          ? 'text-green-100'
-                          : 'text-gray-500'
-                      }`}>
-                        {!player.connected ? 'לא מחובר' : player.ready ? 'מוכן!' : 'ממתין...'}
+                      <div className={`text-sm ${player.ready ? 'text-green-100' : 'text-gray-500'}`}>
+                        {player.ready ? 'מוכן!' : 'ממתין...'}
                       </div>
                     </div>
                   </div>
 
                   {/* Keys indicator */}
-                  <div className={`text-3xl font-black ${
-                    !player.connected
-                      ? 'text-gray-400'
-                      : player.ready
-                      ? 'text-white'
-                      : 'text-gray-400'
-                  }`}>
-                    🗝️ {player.keys || 0}
+                  <div className={`text-3xl font-black ${player.ready ? 'text-white' : 'text-gray-400'}`}>
+                    🗝️ {player.keys}
                   </div>
                 </div>
               </motion.div>
@@ -192,20 +143,13 @@ const PlayerLobbyMultiplayer = () => {
           >
             <button
               onClick={handleToggleReady}
-              disabled={!currentPlayer?.connected}
               className={`w-full py-6 rounded-full font-bold text-2xl shadow-2xl transition-all ${
-                !currentPlayer?.connected
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : isReady
+                isReady
                   ? 'bg-gradient-to-r from-yellow-400 to-orange-400 text-white'
                   : 'bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:scale-105'
               }`}
             >
-              {!currentPlayer?.connected
-                ? '🔌 לא מחובר'
-                : isReady
-                ? '⏱️ ביטול מוכנות'
-                : '✅ אני מוכן!'}
+              {isReady ? '⏱️ ביטול מוכנות' : '✅ אני מוכן!'}
             </button>
           </motion.div>
         )}
@@ -225,18 +169,6 @@ const PlayerLobbyMultiplayer = () => {
                 </div>
                 <div className="text-yellow-700 text-xs mt-1">
                   (ניתן להתחיל בכל מקרה)
-                </div>
-              </div>
-            )}
-
-            {/* Disconnected players warning */}
-            {players.some(p => !p.connected) && (
-              <div className="bg-red-100 border-2 border-red-300 rounded-2xl p-4 text-center">
-                <div className="text-red-800 font-bold text-sm">
-                  🔌 {players.filter(p => !p.connected).length} שחקנים מנותקים
-                </div>
-                <div className="text-red-700 text-xs mt-1">
-                  הם יוכלו להצטרף מחדש במהלך המשחק
                 </div>
               </div>
             )}
@@ -278,9 +210,6 @@ const PlayerLobbyMultiplayer = () => {
           {userRole === 'admin' && (
             <p className="mt-2">כמנהל, אתה יכול להתחיל את המשחק בכל רגע!</p>
           )}
-          <p className="mt-2 text-xs">
-            🔄 שחקנים שמתנתקים יישארו במשחק ויוכלו להתחבר מחדש
-          </p>
         </motion.div>
       </div>
     </div>

@@ -1,41 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import useSocketGameStore from '../store/socketGameStore';
+import useSocketGameStore, { GAME_STATES } from '../store/socketGameStore';
+import LeaveGameButton from '../components/LeaveGameButton';
 
 const QuizRoundMultiplayer = () => {
   const {
+    gameState,
     currentQuestion,
     currentQuestionIndex,
     numQuestions,
     players,
-    currentPlayerIndex,
-    currentAnswerer,
     currentUserId,
-    quizPhase,
-    timeLeft,
+    remainingTimeMs,
+    playerAnswers,
+    reviewResults,
+    correctAnswer,
     submitAnswer
   } = useSocketGameStore();
 
   const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [showingResult, setShowingResult] = useState(false);
+  const [hasAnswered, setHasAnswered] = useState(false);
 
-  const currentPlayer = players[currentPlayerIndex];
-  const isMyTurn = currentAnswerer === currentUserId;
-  const canAnswer = (quizPhase === 'answering' && isMyTurn) || quizPhase === 'open_for_all';
+  // Convert ms to seconds for display
+  const timeLeftSeconds = Math.ceil(remainingTimeMs / 1000);
+
+  // Reset state when new question starts
+  useEffect(() => {
+    if (gameState === GAME_STATES.ASKING) {
+      setSelectedAnswer(null);
+      setHasAnswered(false);
+    }
+  }, [gameState, currentQuestionIndex]);
+
+  // Check if I've answered
+  const iHaveAnswered = playerAnswers?.includes(currentUserId) || hasAnswered;
+
+  // ASKING state - can answer
+  const canAnswer = gameState === GAME_STATES.ASKING && !iHaveAnswered;
 
   const handleAnswer = async (answerIndex) => {
-    if (!canAnswer || showingResult) return;
+    if (!canAnswer) return;
 
     setSelectedAnswer(answerIndex);
-    setShowingResult(true);
+    setHasAnswered(true);
 
-    await submitAnswer(answerIndex);
-
-    setTimeout(() => {
-      setShowingResult(false);
-      setSelectedAnswer(null);
-    }, 3000);
+    try {
+      await submitAnswer(answerIndex);
+    } catch (error) {
+      console.error('Failed to submit answer:', error);
+      setHasAnswered(false);
+    }
   };
+
+  // Find my result in review phase
+  const myResult = reviewResults?.find(r => r.playerId === currentUserId);
 
   if (!currentQuestion) {
     return (
@@ -47,54 +65,140 @@ const QuizRoundMultiplayer = () => {
     );
   }
 
-  return (
-    <div className={`min-h-screen pb-8 transition-all duration-500 ${
-      quizPhase === 'open_for_all'
-        ? 'bg-gradient-to-b from-yellow-100 via-orange-50 to-red-50'
-        : 'bg-gradient-to-b from-blue-50 via-white to-purple-50'
-    }`}>
-      <div className="max-w-md mx-auto px-4">
+  // REVIEW STATE - Show correct answer and results
+  if (gameState === GAME_STATES.REVIEW) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-purple-50 via-blue-50 to-green-50 pb-8">
+        <div className="max-w-md mx-auto px-4">
+          <LeaveGameButton />
 
-        {/* PROMINENT TIMER - Always visible */}
+          {/* Review Header */}
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="sticky top-0 z-20 py-6 mb-6 rounded-b-3xl shadow-2xl bg-gradient-to-r from-green-400 to-emerald-500"
+          >
+            <div className="text-center">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="text-7xl mb-3"
+              >
+                {myResult?.isCorrect ? '✅' : '❌'}
+              </motion.div>
+              <div className="text-3xl font-bold text-white mb-2">
+                {myResult?.isCorrect ? 'תשובה נכונה!' : 'תשובה שגויה'}
+              </div>
+              <div className="text-lg text-white/90">
+                ממשיכים לשאלה הבאה...
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Question with Correct Answer Highlighted */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-3xl shadow-xl p-6 mb-6"
+          >
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+              {currentQuestion.text}
+            </h2>
+
+            <div className="space-y-3">
+              {currentQuestion.options.map((option, index) => {
+                const isCorrect = index === correctAnswer;
+                const wasMyAnswer = selectedAnswer === index;
+
+                return (
+                  <div
+                    key={index}
+                    className={`w-full p-5 rounded-2xl font-bold text-lg shadow-lg ${
+                      isCorrect
+                        ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white'
+                        : wasMyAnswer
+                        ? 'bg-gradient-to-r from-red-400 to-pink-500 text-white'
+                        : 'bg-gray-100 text-gray-400'
+                    }`}
+                  >
+                    {isCorrect && '✓ '}
+                    {wasMyAnswer && !isCorrect && '✗ '}
+                    {option}
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+
+          {/* Results Summary */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-white rounded-3xl shadow-lg p-5"
+          >
+            <h3 className="text-lg font-bold text-gray-800 mb-3 text-center">
+              תוצאות השאלה
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              {players.map((player) => {
+                const playerResult = reviewResults?.find(r => r.playerId === player.id);
+                return (
+                  <div
+                    key={player.id}
+                    className={`p-3 rounded-xl font-bold ${
+                      playerResult?.isCorrect
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="truncate">{player.name}</span>
+                      <span className="text-2xl ml-2">
+                        {playerResult?.isCorrect ? '✓' : '✗'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  // ASKING STATE - Answer questions
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-purple-50 pb-8">
+      <div className="max-w-md mx-auto px-4">
+        <LeaveGameButton />
+
+        {/* PROMINENT TIMER */}
         <motion.div
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
           className={`sticky top-0 z-20 py-6 mb-6 rounded-b-3xl shadow-2xl transition-all duration-500 ${
-            quizPhase === 'open_for_all'
-              ? 'bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400'
-              : timeLeft <= 10
+            timeLeftSeconds <= 10
               ? 'bg-gradient-to-r from-red-400 to-pink-500'
               : 'bg-gradient-to-r from-blue-400 to-purple-500'
           }`}
         >
           <div className="text-center">
-            {quizPhase === 'open_for_all' && (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: [1, 1.3, 1] }}
-                transition={{ duration: 0.6, repeat: Infinity }}
-                className="text-7xl mb-3"
-              >
-                ⚡
-              </motion.div>
-            )}
             <motion.div
               animate={{
-                scale: timeLeft <= 5 ? [1, 1.2, 1] : 1,
+                scale: timeLeftSeconds <= 5 ? [1, 1.2, 1] : 1,
               }}
-              transition={{ duration: 0.5, repeat: timeLeft <= 5 ? Infinity : 0 }}
+              transition={{ duration: 0.5, repeat: timeLeftSeconds <= 5 ? Infinity : 0 }}
               className="text-8xl font-black text-white mb-2"
             >
-              {timeLeft}
+              {timeLeftSeconds}
             </motion.div>
             <div className="text-2xl font-bold text-white">
-              {quizPhase === 'open_for_all' ? '🔥 פתוח לכולם! 🔥' : 'שניות נותרו'}
+              שניות נותרו
             </div>
-            {quizPhase === 'answering' && currentPlayer && (
-              <div className="text-lg text-white/90 mt-2">
-                תור של {currentPlayer.name}
-              </div>
-            )}
+            <div className="text-sm text-white/80 mt-2">
+              {playerAnswers?.length || 0} / {players.length} ענו
+            </div>
           </div>
         </motion.div>
 
@@ -119,31 +223,19 @@ const QuizRoundMultiplayer = () => {
           </div>
         </motion.div>
 
-        {/* Open For All Banner */}
+        {/* Already Answered Banner */}
         <AnimatePresence>
-          {quizPhase === 'open_for_all' && (
+          {iHaveAnswered && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8, y: -20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-3xl p-6 text-center shadow-2xl mb-6"
+              className="bg-gradient-to-r from-green-400 to-emerald-500 rounded-3xl p-4 text-center shadow-xl mb-6"
             >
-              <motion.div
-                animate={{
-                  rotate: [0, 10, -10, 0],
-                  scale: [1, 1.1, 1]
-                }}
-                transition={{ duration: 0.5, repeat: Infinity }}
-                className="text-6xl mb-2"
-              >
-                🏃‍♂️💨
-              </motion.div>
-              <h2 className="text-3xl font-black text-white mb-2">
-                מהרו לענות!
+              <div className="text-4xl mb-2">✓</div>
+              <h2 className="text-xl font-bold text-white">
+                עניתָ! ממתין לשאר השחקנים...
               </h2>
-              <p className="text-xl text-white/90">
-                כל מי שיענה נכון יזכה במפתח! 🗝️
-              </p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -161,51 +253,40 @@ const QuizRoundMultiplayer = () => {
           <div className="space-y-3">
             {currentQuestion.options.map((option, index) => {
               const isSelected = selectedAnswer === index;
-              const isCorrect = index === currentQuestion.correct;
-              const showCorrect = showingResult && isCorrect;
-              const showWrong = showingResult && isSelected && !isCorrect;
 
               return (
                 <motion.button
                   key={index}
-                  whileHover={canAnswer && !showingResult ? { scale: 1.02 } : {}}
-                  whileTap={canAnswer && !showingResult ? { scale: 0.98 } : {}}
+                  whileHover={canAnswer ? { scale: 1.02 } : {}}
+                  whileTap={canAnswer ? { scale: 0.98 } : {}}
                   onClick={() => handleAnswer(index)}
-                  disabled={!canAnswer || showingResult}
+                  disabled={!canAnswer}
                   className={`w-full p-5 rounded-2xl font-bold text-lg transition-all shadow-lg ${
-                    showCorrect
-                      ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white'
-                      : showWrong
-                      ? 'bg-gradient-to-r from-red-400 to-pink-500 text-white'
-                      : canAnswer && !showingResult
+                    isSelected
+                      ? 'bg-gradient-to-r from-purple-400 to-pink-400 text-white'
+                      : canAnswer
                       ? 'bg-gradient-to-r from-blue-400 to-purple-400 text-white hover:from-blue-500 hover:to-purple-500'
                       : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   }`}
                 >
-                  {showCorrect && '✓ '}
-                  {showWrong && '✗ '}
                   {option}
                 </motion.button>
               );
             })}
           </div>
 
-          {!canAnswer && !showingResult && (
+          {!canAnswer && !iHaveAnswered && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="mt-6 text-center text-gray-500 text-sm"
             >
-              {quizPhase === 'answering' ? (
-                <>⏳ המתן לתורך או שהשאלה תיפתח לכולם...</>
-              ) : (
-                <>👀 צופה...</>
-              )}
+              ⏳ מחכה למנהל להתחיל את השאלה...
             </motion.div>
           )}
         </motion.div>
 
-        {/* Players Status */}
+        {/* Players Status - Show who answered */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -215,21 +296,33 @@ const QuizRoundMultiplayer = () => {
             🗝️ מפתחות
           </h3>
           <div className="grid grid-cols-2 gap-3">
-            {players.map((player) => (
-              <div
-                key={player.id}
-                className={`p-3 rounded-xl font-bold transition-all ${
-                  player.id === currentAnswerer
-                    ? 'bg-gradient-to-br from-purple-400 to-pink-400 text-white scale-105'
-                    : 'bg-gray-100 text-gray-700'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="truncate">{player.name}</span>
-                  <span className="text-2xl ml-2">{player.keys} 🗝️</span>
+            {players.map((player) => {
+              const hasPlayerAnswered = playerAnswers?.includes(player.id);
+
+              return (
+                <div
+                  key={player.id}
+                  className={`p-3 rounded-xl font-bold transition-all ${
+                    hasPlayerAnswered
+                      ? 'bg-gradient-to-br from-green-400 to-emerald-400 text-white'
+                      : player.connected
+                      ? 'bg-gray-100 text-gray-700'
+                      : 'bg-gray-50 text-gray-400'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1 truncate">
+                      {hasPlayerAnswered && <span>✓</span>}
+                      <span className="truncate">{player.name}</span>
+                      {!player.connected && (
+                        <span className="text-xs">(מנותק)</span>
+                      )}
+                    </div>
+                    <span className="text-2xl ml-2">{player.keysWon || 0} 🗝️</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </motion.div>
       </div>
