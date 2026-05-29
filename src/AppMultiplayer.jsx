@@ -30,11 +30,11 @@ function AppMultiplayer() {
       case GAME_STATES.KEY_WALL:
         return <KeyBoardStageMultiplayer />;
 
-      // NEW: RESULTS_COMPARISON and RESULTS_WINNER states
+      // Round 4 Issue #5: Add missing reveal phase states
+      case GAME_STATES.KEY_WALL_DONE:
       case GAME_STATES.RESULTS_COMPARISON:
+      case GAME_STATES.RESULTS_REVEAL:
       case GAME_STATES.RESULTS_WINNER:
-        return <FinalRevealMultiplayer />;
-
       case GAME_STATES.GAME_OVER:
         return <FinalRevealMultiplayer />;
 
