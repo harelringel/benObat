@@ -108,7 +108,14 @@ class SocketService {
         return;
       }
 
+      // Hard 2-second timeout - never trap user on spinner
+      const timeout = setTimeout(() => {
+        console.warn('[socket] room:leave timeout - proceeding anyway');
+        resolve({ success: true, timedOut: true });
+      }, 2000);
+
       this.socket.emit('room:leave', { pin, playerToken }, (response) => {
+        clearTimeout(timeout);
         if (response.success) {
           resolve(response);
         } else {

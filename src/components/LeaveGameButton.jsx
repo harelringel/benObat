@@ -24,17 +24,11 @@ const LeaveGameButton = ({ className = '' }) => {
     setShowConfirm(true);
   };
 
-  const handleConfirmLeave = async () => {
-    setLeaving(true);
-
-    try {
-      await leaveGame();
-      // Game will reset, navigate to welcome
-    } catch (error) {
-      console.error('Error leaving game:', error);
-      setLeaving(false);
-      setShowConfirm(false);
-    }
+  const handleConfirmLeave = () => {
+    // Round 4 Issue #1: Optimistic leave - executes immediately
+    leaveGame();
+    // leaveGame() is now synchronous and navigates immediately
+    // No need to manage loading state or errors
   };
 
   const handleCancel = () => {

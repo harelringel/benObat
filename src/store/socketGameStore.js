@@ -404,30 +404,27 @@ const useSocketGameStore = create((set, get) => ({
   },
 
   // NEW: Explicit leave game (Issue #2)
-  leaveGame: async () => {
-    try {
-      const { roomPin, playerToken } = get();
+  // Round 4 Issue #1: Optimistic UI - navigate immediately, fire-and-forget
+  leaveGame: () => {
+    const { roomPin, playerToken } = get();
 
-      if (!playerToken) {
-        // Admin or not in game
-        get().resetGame();
-        return { success: true };
-      }
+    // 1. Immediately clear localStorage and reset (optimistic)
+    localStorage.removeItem('playerToken');
+    localStorage.removeItem('roomPin');
+    localStorage.removeItem('playerName');
 
-      await socketService.leaveGame(roomPin, playerToken);
+    get().resetGame();
 
-      // Clear localStorage
-      localStorage.removeItem('playerToken');
-      localStorage.removeItem('roomPin');
-      localStorage.removeItem('playerName');
-
-      get().resetGame();
-
-      return { success: true };
-    } catch (error) {
-      console.error('Failed to leave game:', error);
-      return { success: false, error: error.message };
+    // 2. Fire socket emit in background (fire-and-forget)
+    if (playerToken && roomPin) {
+      socketService.leaveGame(roomPin, playerToken)
+        .catch(error => {
+          console.warn('Failed to notify server of leave (non-critical):', error);
+          // User already left from their perspective, server will handle via disconnect
+        });
     }
+
+    return { success: true };
   },
 
   // =========================================================================
